@@ -157,6 +157,13 @@ code{background:var(--bg);padding:1px 6px;border-radius:4px;font-size:14px}
   <div id="oBody" style="display:grid;gap:10px"></div>
 </section>
 
+<!-- CARTS -->
+<section class="panel" id="cartsPanel" hidden>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2>🛍️ Carts <span class="help" id="cCount"></span></h2><button class="btn ghost small" id="cRefresh">↻ Refresh</button></div>
+  <p class="help">Customers ne jo products cart mein daale. <b>Cart mein</b> ka matlab hai abhi order nahi kiya. Is se pata chalta hai kaunsi cheezein pasand ki ja rahi hain. Customer ka naam ya number yahan nahi aata, woh sirf order submit karne par Orders mein aata hai.</p>
+  <div id="cBody" style="display:grid;gap:10px"></div>
+</section>
+
 <!-- ORDERS SETUP -->
 <section class="panel" id="setupPanel" hidden>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2>⚙️ Orders system setup</h2><button class="btn ghost small" id="setupClose">Band karein</button></div>
@@ -248,6 +255,7 @@ const SEND_EMAIL       = true;                 // har order par aap ko email bhi
 
 const HEAD = ["Waqt", "Order #", "Status", "Naam", "Mobile", "Shehar", "Pata", "Note", "Items", "Products (Rs)", "Delivery (Rs)", "Kul (Rs)"];
 const STATUSES = ["Naya", "Confirm", "Bhej diya", "Mukammal", "Cancel"];
+const CART_HEAD = ["Pehli dafa", "Aakhri dafa", "Cart ID", "Status", "Items", "Kul (Rs)", "Order #"];
 
 function doGet() {
   return out_({ ok: true, msg: "Etimad Bazar orders system chal raha hai" });
@@ -257,10 +265,12 @@ function doPost(e) {
   let b;
   try { b = JSON.parse(e.postData.contents); } catch (err) { return out_({ ok: false, error: "bad" }); }
   if (b.action === "order") return order_(b);
+  if (b.action === "cart") return cart_(b);
   if (b.key !== ADMIN_KEY) return out_({ ok: false, error: "key" });
   if (b.action === "ping") return out_({ ok: true });
   if (b.action === "test") { const r = notify_("✅ Test: Etimad Bazar orders system theek chal raha hai.", "TEST"); return out_({ ok: true, whatsapp: r.whatsapp, email: r.email }); }
   if (b.action === "list") return list_();
+  if (b.action === "carts") return cartsList_();
   if (b.action === "status") return status_(String(b.id || ""), String(b.status || ""));
   return out_({ ok: false, error: "action" });
 }
@@ -277,29 +287,50 @@ function order_(b) {
   if (n >= 5) return out_({ ok: false, error: "limit" });
   cache.put(rk, String(n + 1), 3600);
 
-  // qeemat website ki store.json se dobara hisaab hoti hai (koi qeemat badal na sake)
-  const st = store_(), cfg = st.config || {}, prods = {};
-  (st.products || []).forEach(function (p) { prods[p.id] = p; });
-  let sub = 0; const lines = [];
-  (Array.isArray(b.items) ? b.items : []).slice(0, 50).forEach(function (it) {
-    const p = prods[it.id], q = Math.min(99, Math.max(0, Math.floor(Number(it.qty) || 0)));
-    if (!p || !q) return;
-    const amt = Number(p.price) * q; sub += amt;
-    lines.push(clean_(p.name, 120) + " × " + q + " = Rs " + amt);
-  });
+  const k = calc_(b.items), lines = k.lines, sub = k.sub, del = k.del, total = k.total;
   if (!lines.length) return out_({ ok: false, error: "items" });
-  const fee = Number(cfg.deliveryFee) || 0, free = Number(cfg.freeDeliveryOver) || 0;
-  const del = (free && sub >= free) ? 0 : fee, total = sub + del;
 
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
   let id;
   try {
     id = "EB-" + Utilities.formatDate(new Date(), "Asia/Karachi", "MMdd") + "-" + Math.floor(1000 + Math.random() * 9000);
     sheet_().appendRow([new Date(), id, "Naya", name, "'" + phone, city, addr, note, lines.join("\n"), sub, del, total]);
+    const cid = cid_(b.cid);
+    if (cid) { const cs = cartSheet_(), r = findRow_(cs, 3, cid); if (r) { cs.getRange(r, 2).setValue(new Date()); cs.getRange(r, 4).setValue("Order ho gaya"); cs.getRange(r, 7).setValue(id); } }
   } finally { lock.releaseLock(); }
 
   notify_("🛒 NAYA ORDER " + id + "\n\n" + lines.join("\n") + "\n\nDelivery: Rs " + del + "\nKUL: Rs " + total + " (COD)\n\n👤 " + name + "\n📞 " + phone + "\n🏙️ " + city + "\n📍 " + addr + (note ? "\n📝 " + note : ""), id);
   return out_({ ok: true, id: id, total: total });
+}
+
+/* ---------- cart: customer ne cart mein kya rakha ---------- */
+function cart_(b) {
+  const cid = cid_(b.cid);
+  if (!cid) return out_({ ok: false, error: "bad" });
+  const cache = CacheService.getScriptCache(), rk = "c" + cid, n = Number(cache.get(rk) || 0);
+  if (n >= 60) return out_({ ok: false, error: "limit" });
+  cache.put(rk, String(n + 1), 600);
+  const k = calc_(b.items);
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const cs = cartSheet_(), r = findRow_(cs, 3, cid);
+    if (r) {
+      if (String(cs.getRange(r, 4).getValue()) === "Order ho gaya") return out_({ ok: true });
+      cs.getRange(r, 2, 1, 5).setValues([[new Date(), cid, k.lines.length ? "Cart mein" : "Khaali", k.lines.join("\n"), k.lines.length ? k.total : 0]]);
+    } else if (k.lines.length) {
+      cs.appendRow([new Date(), new Date(), cid, "Cart mein", k.lines.join("\n"), k.total, ""]);
+    }
+  } finally { lock.releaseLock(); }
+  return out_({ ok: true });
+}
+function cartsList_() {
+  const cs = cartSheet_(), last = cs.getLastRow();
+  if (last < 2) return out_({ ok: true, carts: [] });
+  const start = Math.max(2, last - 299);
+  const rows = cs.getRange(start, 1, last - start + 1, CART_HEAD.length).getValues();
+  return out_({ ok: true, carts: rows.map(function (r) {
+    return { first: r[0] instanceof Date ? r[0].toISOString() : String(r[0]), last: r[1] instanceof Date ? r[1].toISOString() : String(r[1]), cid: r[2], status: r[3], items: r[4], total: r[5], order: r[6] };
+  }).reverse() });
 }
 
 /* ---------- admin: orders list ---------- */
@@ -343,6 +374,34 @@ function notify_(msg, id) {
 }
 
 /* ---------- madadgar ---------- */
+// qeemat website ki store.json se dobara hisaab hoti hai (koi qeemat badal na sake)
+function calc_(items) {
+  const st = store_(), cfg = st.config || {}, prods = {};
+  (st.products || []).forEach(function (p) { prods[p.id] = p; });
+  let sub = 0; const lines = [];
+  (Array.isArray(items) ? items : []).slice(0, 50).forEach(function (it) {
+    const p = prods[it.id], q = Math.min(99, Math.max(0, Math.floor(Number(it.qty) || 0)));
+    if (!p || !q) return;
+    const amt = Number(p.price) * q; sub += amt;
+    lines.push(clean_(p.name, 120) + " × " + q + " = Rs " + amt);
+  });
+  const fee = Number(cfg.deliveryFee) || 0, free = Number(cfg.freeDeliveryOver) || 0;
+  const del = (!lines.length || (free && sub >= free)) ? 0 : fee;
+  return { lines: lines, sub: sub, del: del, total: sub + del };
+}
+function cid_(v) { return String(v || "").replace(/[^\w-]/g, "").slice(0, 40); }
+function findRow_(sh, col, val) {
+  const last = sh.getLastRow(); if (last < 2) return 0;
+  const start = Math.max(2, last - 1999), vals = sh.getRange(start, col, last - start + 1, 1).getValues();
+  for (let i = vals.length - 1; i >= 0; i--) if (String(vals[i][0]) === val) return start + i;
+  return 0;
+}
+function cartSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName("Carts");
+  if (!sh) { sh = ss.insertSheet("Carts"); sh.appendRow(CART_HEAD); sh.setFrozenRows(1); sh.getRange(1, 1, 1, CART_HEAD.length).setFontWeight("bold"); }
+  return sh;
+}
 function sheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName("Orders");
@@ -366,6 +425,7 @@ function out_(o) {
 /* Pehli dafa ijazat (Authorize) dene ke liye isay ek dafa "Run" karein */
 function setup() {
   sheet_();
+  cartSheet_();
   notify_("✅ Etimad Bazar orders system tayar hai.", "TEST");
 }
 </script>
@@ -488,7 +548,7 @@ function renderOrders(){
   if(!data)return;
   if(!data.config.ordersUrl||!auth.okey){
     box.innerHTML='<p class="help">'+(data.config.ordersUrl?"Is device par orders ki chaabi (admin key) nahi hai. <b>Orders setup</b> kholein, Qadam 4 mein apni Apps Script ki ADMIN_KEY daal kar Connect karein.":"Orders system abhi set nahi hua. Abhi customer ka order sirf WhatsApp message se aata hai. Orders ko yahan dekhne aur har order par khud WhatsApp alert ke liye <b>Orders setup</b> karein.")+'</p><button class="btn" id="oStart" style="justify-self:start">Orders setup shuru karein</button>';
-    $("#oStart").addEventListener("click",openSetup);$("#oCount").textContent="";return;
+    $("#oStart").addEventListener("click",openSetup);$("#oCount").textContent="";$("#cartsPanel").hidden=true;return;
   }
   if(!orders){box.innerHTML='<p class="help">Orders load ho rahe hain…</p>';return}
   const cnt={};orders.forEach(o=>cnt[o.status]=(cnt[o.status]||0)+1);
@@ -508,6 +568,7 @@ function renderOrders(){
 async function loadOrders(quiet){
   if(!ordersReady()||oLoading)return;oLoading=true;
   if(!quiet){$("#oRefresh").disabled=true;$("#oRefresh").textContent="Load ho raha hai…"}
+  loadCarts();
   try{const j=await ordersCall({action:"list",key:auth.okey});if(!j.ok)throw new Error(j.error==="key"?"Admin key ghalat hai. Orders setup mein sahi key daalein.":"Orders nahi mile.");orders=j.orders;renderOrders()}
   catch(e){if(!quiet)$("#oBody").innerHTML='<p class="msg bad"></p>',$("#oBody .msg").textContent=e.message==="Failed to fetch"?"Orders system tak raabta nahi ho saka. Internet ya Web app URL check karein.":e.message}
   oLoading=false;$("#oRefresh").disabled=false;$("#oRefresh").textContent="↻ Refresh";
@@ -522,6 +583,27 @@ $("#oBody").addEventListener("change",async e=>{
   catch(err){sel.value=old;sel.disabled=false;alertInline(sel,"Status save nahi hua")}
 });
 function alertInline(el,t){const p=document.createElement("span");p.className="help";p.style.color="var(--red)";p.textContent=" "+t;el.after(p);setTimeout(()=>p.remove(),3000)}
+
+/* carts */
+let carts=null,cFilter="Cart mein";
+const ago=t=>{const m=Math.round((Date.now()-new Date(t))/60000);return isNaN(m)?"":m<1?"abhi":m<60?m+" min pehle":m<1440?Math.round(m/60)+" ghante pehle":Math.round(m/1440)+" din pehle"};
+function renderCarts(){
+  const p=$("#cartsPanel");if(!ordersReady()){p.hidden=true;return}p.hidden=false;
+  if(!carts){$("#cBody").innerHTML='<p class="help">Load ho raha hai…</p>';return}
+  const cnt={};carts.forEach(c=>cnt[c.status]=(cnt[c.status]||0)+1);
+  $("#cCount").textContent="("+(cnt["Cart mein"]||0)+" bina order)";
+  const list=carts.filter(c=>c.status!=="Khaali"&&(cFilter==="Sab"||c.status===cFilter));
+  $("#cBody").innerHTML='<div class="ochips">'+["Cart mein","Order ho gaya","Sab"].map(x=>'<button class="ochip" data-cf="'+x+'" aria-pressed="'+(x===cFilter)+'">'+x+' '+(x==="Sab"?carts.filter(c=>c.status!=="Khaali").length:(cnt[x]||0))+'</button>').join("")+'</div>'+
+  (list.length?list.slice(0,100).map(c=>'<div class="ord"><div class="oh"><span class="st '+(c.status==="Order ho gaya"?"s3":"s1")+'">'+esc(c.status)+'</span>'+(c.order?'<b>'+esc(c.order)+'</b>':'')+'<span class="t">'+esc(ago(c.last))+'</span></div><pre>'+esc(c.items)+'</pre><div><b>Kul: Rs '+esc(Number(c.total).toLocaleString("en-PK"))+'</b></div></div>').join(""):'<p class="help">Is list mein kuch nahi.</p>');
+}
+async function loadCarts(){
+  if(!ordersReady())return;
+  try{const j=await ordersCall({action:"carts",key:auth.okey});if(j.ok){carts=j.carts;renderCarts()}
+    else if(j.error==="action"){$("#cartsPanel").hidden=false;$("#cBody").innerHTML='<p class="msg info">Carts dekhne ke liye Google Apps Script ka code update karna hoga: Orders setup → Qadam 2 se naya code copy kar ke paste karein → Save → Deploy → Manage deployments → ✏️ → Version: New version → Deploy.</p>'}}
+  catch(e){}
+}
+$("#cRefresh").addEventListener("click",loadCarts);
+$("#cBody").addEventListener("click",e=>{const b=e.target.closest("[data-cf]");if(b){cFilter=b.dataset.cf;renderCarts()}});
 
 /* setup */
 function randKey(){const a=crypto.getRandomValues(new Uint8Array(18));return Array.from(a,b=>b.toString(16).padStart(2,"0")).join("")}

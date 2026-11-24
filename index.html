@@ -305,7 +305,13 @@ const pic=p=>p.img?'<img src="'+esc(p.img)+'" alt="'+esc(p.name)+'" loading="laz
 const off=p=>p.old>p.price?Math.round((1-p.price/p.old)*100):0;
 const wa=String(CONFIG.whatsapp||"").replace(/\D/g,"");
 try{cart=JSON.parse(localStorage.getItem("eb_cart")||"{}")||{}}catch(e){cart={}}
-const save=()=>{try{localStorage.setItem("eb_cart",JSON.stringify(cart))}catch(e){}};
+let cid="";try{cid=localStorage.getItem("eb_cid")||""}catch(e){}
+const newCid=()=>{cid="c"+Date.now().toString(36)+Math.random().toString(36).slice(2,8);try{localStorage.setItem("eb_cid",cid)}catch(e){}};
+if(!cid)newCid();
+let syncT=null;
+/* cart mein kya hai, admin ke "Carts" dashboard ke liye (sirf products, koi zaati maloomat nahi) */
+const syncCart=()=>{if(!CONFIG.ordersUrl)return;clearTimeout(syncT);syncT=setTimeout(()=>{fetch(CONFIG.ordersUrl,{method:"POST",keepalive:true,headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"cart",cid,items:Object.keys(cart).map(id=>({id,qty:cart[id]}))})}).catch(()=>{})},2500)};
+const save=()=>{try{localStorage.setItem("eb_cart",JSON.stringify(cart))}catch(e){}syncCart()};
 const byId=id=>PRODUCTS.find(p=>p.id===id);
 for(const id in cart){if(!byId(id)||!(cart[id]>0))delete cart[id]}
 
@@ -392,10 +398,10 @@ async function buildOrder(){
   if(CONFIG.ordersUrl){
     const btn=$("#of button[type=submit]");sending=true;btn.disabled=true;btn.textContent="Order bheja ja raha hai…";
     try{
-      const r=await fetch(CONFIG.ordersUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"order",items:Object.keys(cart).map(id=>({id,qty:cart[id]})),customer:{name:f.fn,phone:f.fp,city:f.fc,address:f.fa,note:f.fx}})});
+      const r=await fetch(CONFIG.ordersUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"order",cid,items:Object.keys(cart).map(id=>({id,qty:cart[id]})),customer:{name:f.fn,phone:f.fp,city:f.fc,address:f.fa,note:f.fx}})});
       const j=await r.json();
       if(!j.ok)throw new Error(j.error||"fail");
-      cart={};save();
+      newCid();cart={};save();
       $("#cnt").textContent="0";
       $("#dbody").innerHTML='<div class="empty" style="color:inherit"><div style="font-size:48px">✅</div><h2 style="font-size:24px;margin:8px 0">Shukriya! Order mil gaya</h2><p>Order number: <b id="oid"></b><br>Kul raqam: <b id="otot"></b> (Cash on Delivery)</p><p class="sample">Hum jald aap ko call ya WhatsApp kar ke order confirm karenge.</p><div id="okBox" style="display:grid;gap:10px;margin-top:16px"></div></div>';
       $("#oid").textContent=j.id;$("#otot").textContent=money(j.total);
