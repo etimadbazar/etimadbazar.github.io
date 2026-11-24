@@ -1,0 +1,130 @@
+{
+ "config": {
+  "storeName": "Etimad Bazar",
+  "whatsapp": "923000000000",
+  "deliveryFee": 200,
+  "freeDeliveryOver": 3000,
+  "currency": "Rs"
+ },
+ "banners": [
+  {
+   "tag": "Naya stock",
+   "title": "Gadgets sale, 35% tak off",
+   "text": "Earbuds, smart watches aur power banks, Cash on Delivery ke saath.",
+   "cat": "Gadgets",
+   "img": ""
+  },
+  {
+   "tag": "Ghar ke liye",
+   "title": "Kitchen ka kaam ab aasaan",
+   "text": "Chopper, fry pan aur storage jars, sab ek jagah.",
+   "cat": "Ghar & Kitchen",
+   "img": ""
+  },
+  {
+   "tag": "Fashion",
+   "title": "Bags aur watches ki nayi range",
+   "text": "Rozana aur function dono ke liye stylish cheezein.",
+   "cat": "Fashion",
+   "img": ""
+  }
+ ],
+ "products": [
+  {
+   "id": "p1",
+   "name": "Electric Chopper 3-in-1",
+   "cat": "Ghar & Kitchen",
+   "price": 2450,
+   "old": 3200,
+   "icon": "blender",
+   "pop": 9,
+   "desc": "Pyaaz, lehsan, sabzi aur qeema minto mein. 2 litre jar, stainless steel blades, USB charging."
+  },
+  {
+   "id": "p2",
+   "name": "Non-stick Fry Pan 26cm",
+   "cat": "Ghar & Kitchen",
+   "price": 1890,
+   "old": 2400,
+   "icon": "pan",
+   "pop": 7,
+   "desc": "Granite coating, kam tel mein khana. Gas aur electric chulhe dono par chalta hai."
+  },
+  {
+   "id": "p3",
+   "name": "Storage Jars Set (6)",
+   "cat": "Ghar & Kitchen",
+   "price": 1350,
+   "icon": "jar",
+   "pop": 6,
+   "desc": "Airtight dhakkan wale 6 jars, daal, chawal aur masalon ke liye. BPA-free plastic."
+  },
+  {
+   "id": "p4",
+   "name": "Wireless Earbuds Pro",
+   "cat": "Gadgets",
+   "price": 2999,
+   "old": 4500,
+   "icon": "buds",
+   "pop": 10,
+   "desc": "Bluetooth 5.3, 30 ghante battery case ke saath, touch controls aur saaf awaaz."
+  },
+  {
+   "id": "p5",
+   "name": "Smart Watch Fit",
+   "cat": "Gadgets",
+   "price": 3750,
+   "old": 5200,
+   "icon": "watch",
+   "pop": 8,
+   "desc": "Dil ki dharkan, qadam aur neend ka hisaab. WhatsApp notifications, 7 din battery."
+  },
+  {
+   "id": "p6",
+   "name": "Power Bank 20000mAh",
+   "cat": "Gadgets",
+   "price": 3290,
+   "icon": "bolt",
+   "pop": 7,
+   "desc": "Fast charging, do phone ek saath. Chhota aur safar ke liye aasaan."
+  },
+  {
+   "id": "p7",
+   "name": "Gents Casual Watch",
+   "cat": "Fashion",
+   "price": 2150,
+   "icon": "watch",
+   "pop": 5,
+   "desc": "Leather strap, pani se mehfooz dial. Rozana aur function dono ke liye."
+  },
+  {
+   "id": "p8",
+   "name": "Ladies Handbag",
+   "cat": "Fashion",
+   "price": 2690,
+   "old": 3500,
+   "icon": "bag",
+   "pop": 8,
+   "desc": "Teen khanon wala bag, mazboot zip aur lamba strap. Kai rangon mein."
+  },
+  {
+   "id": "p9",
+   "name": "Hair Straightener",
+   "cat": "Beauty",
+   "price": 2390,
+   "old": 2900,
+   "icon": "comb",
+   "pop": 6,
+   "desc": "Ceramic plates, 5 temperature settings, 60 second mein garam."
+  },
+  {
+   "id": "p10",
+   "name": "Facial Massager Roller",
+   "cat": "Beauty",
+   "price": 990,
+   "icon": "spark",
+   "pop": 4,
+   "desc": "Chehre ki massage ke liye, thanda karne wala roller. Rozana 5 minute."
+  }
+ ]
+}

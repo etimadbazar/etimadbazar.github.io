@@ -19,6 +19,7 @@
 --red:#e4002b;--red2:#b8001f;--dark:#141416}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Jost,system-ui,sans-serif;overflow-x:clip}
 h1,h2,h3{margin:0;line-height:1.08;text-wrap:balance}
 h1{font-size:clamp(32px,4.6vw,52px);font-weight:800}
@@ -67,7 +68,8 @@ nav.links button[aria-pressed=true]{color:var(--red);box-shadow:inset 0 -3px var
 .slide .tag{display:inline-block;background:#fff;color:var(--red);font-weight:700;font-size:14px;padding:3px 12px;border-radius:999px;margin-bottom:14px}
 .slide.dk .tag{background:var(--red);color:#fff}
 .slide p{font-size:18px;opacity:.9;margin:12px 0 20px;max-width:26em}
-.slide svg{width:100%;height:280px}
+.slide svg,.slide .simg{width:100%;height:280px}.slide .simg{object-fit:contain;filter:drop-shadow(0 10px 20px #0005)}
+.promo .pimg{width:120px;height:120px;object-fit:contain}.rcat .c img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .btn{display:inline-flex;align-items:center;min-height:46px;padding:0 22px;border-radius:6px;background:#fff;color:var(--red);font-weight:700;text-decoration:none;border:0}
 .slide.dk .btn{background:var(--red);color:#fff}
 .arrows{position:absolute;right:16px;bottom:16px;display:flex;gap:8px}
@@ -155,7 +157,7 @@ input,textarea{min-height:46px;padding:10px 12px;border:1px solid var(--line);bo
 .toast.on{opacity:1}
 @media(max-width:960px){.hero .wrap{grid-template-columns:1fr}.side{display:none}.feats ul{grid-template-columns:repeat(2,minmax(0,1fr))}footer .cols{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){header.main .wrap{flex-wrap:wrap}.sbox{order:3;flex-basis:100%;max-width:none}.logo{margin-right:auto}.how ol,.promos .wrap{grid-template-columns:1fr}.util .hide{display:none}}
-@media(max-width:600px){.slide{grid-template-columns:1fr;min-height:0;padding-bottom:76px}.slide svg{height:170px;order:-1}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.flash .grid{grid-auto-columns:46%}.mgrid{grid-template-columns:1fr}.mgrid .thumb{min-height:220px}.feats ul{grid-template-columns:1fr}.rcat{width:92px}.rcat .c{width:84px;height:84px}footer .cols{grid-template-columns:1fr}.promo{grid-template-columns:minmax(0,1fr) 84px}.promo svg{width:84px;height:84px}}
+@media(max-width:600px){.slide{grid-template-columns:1fr;min-height:0;padding-bottom:76px}.slide svg,.slide .simg{height:170px;order:-1}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.flash .grid{grid-auto-columns:46%}.mgrid{grid-template-columns:1fr}.mgrid .thumb{min-height:220px}.feats ul{grid-template-columns:1fr}.rcat{width:92px}.rcat .c{width:84px;height:84px}footer .cols{grid-template-columns:1fr}.promo{grid-template-columns:minmax(0,1fr) 84px}.promo svg,.promo .pimg{width:84px;height:84px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -202,12 +204,12 @@ input,textarea{min-height:46px;padding:10px 12px;border:1px solid var(--line);bo
 </div></section>
 
 <section class="promos"><div class="wrap">
-  <div class="promo a"><div><h3>Kitchen ka saamaan</h3><p style="margin:0 0 14px">Rozana kaam aasaan banayein</p><button class="btn" data-c="Ghar & Kitchen">Abhi dekhein</button></div><svg viewBox="0 0 100 100" aria-hidden="true" id="promoA"></svg></div>
-  <div class="promo b"><div><h3>Naye gadgets</h3><p style="margin:0 0 14px;opacity:.8">Earbuds, watches, power banks</p><button class="btn" data-c="Gadgets">Abhi dekhein</button></div><svg viewBox="0 0 100 100" aria-hidden="true" id="promoB"></svg></div>
+  <div class="promo a" id="promoA"></div>
+  <div class="promo b" id="promoB"></div>
 </div></section>
 
 <section id="shop"><div class="wrap">
-  <div class="head"><div><h2 id="shopTitle">Tamam <span>products</span></h2><p class="sample">Yeh sample products hain. Asli products aur tasveerein baad mein lagayi jayengi.</p></div>
+  <div class="head"><div><h2 id="shopTitle">Tamam <span>products</span></h2><p class="sample" id="sampleNote">Yeh sample products hain. Asli products aur tasveerein baad mein lagayi jayengi.</p></div>
     <div class="tools"><select id="sort" aria-label="Tarteeb"><option value="pop">Mashhoor pehle</option><option value="low">Qeemat: kam se zyada</option><option value="high">Qeemat: zyada se kam</option></select></div></div>
   <div class="grid" id="grid"></div>
 </div></section>
@@ -241,35 +243,28 @@ input,textarea{min-height:46px;padding:10px 12px;border:1px solid var(--line);bo
 
 <script>
 {
-/* ======= YAHAN APNI STORE KI SETTINGS BADLEIN ======= */
-const CONFIG = {
-  storeName: "Etimad Bazar",
-  whatsapp: "923000000000",      // apna WhatsApp number, 92 se shuru, + ya 0 ke baghair
-  deliveryFee: 200,              // Rs
-  freeDeliveryOver: 3000,        // is se zyada order par delivery free
-  currency: "Rs"
+/* Store ka data "store.json" file se aata hai, jo Admin Panel (admin.html) se badalti hai.
+   Agar woh file na mile to neeche wala sample data dikhaya jata hai. */
+const DEFAULT = {
+  config: {storeName:"Etimad Bazar", whatsapp:"923000000000", deliveryFee:200, freeDeliveryOver:3000, currency:"Rs"},
+  banners: [
+    {tag:"Naya stock", title:"Gadgets sale, 35% tak off", text:"Earbuds, smart watches aur power banks, Cash on Delivery ke saath.", cat:"Gadgets", img:""},
+    {tag:"Ghar ke liye", title:"Kitchen ka kaam ab aasaan", text:"Chopper, fry pan aur storage jars, sab ek jagah.", cat:"Ghar & Kitchen", img:""},
+    {tag:"Fashion", title:"Bags aur watches ki nayi range", text:"Rozana aur function dono ke liye stylish cheezein.", cat:"Fashion", img:""}
+  ],
+  products: [
+    {id:"p1", name:"Electric Chopper 3-in-1", cat:"Ghar & Kitchen", price:2450, old:3200, icon:"blender", pop:9, desc:"Pyaaz, lehsan, sabzi aur qeema minto mein. 2 litre jar, stainless steel blades, USB charging."},
+    {id:"p2", name:"Non-stick Fry Pan 26cm", cat:"Ghar & Kitchen", price:1890, old:2400, icon:"pan", pop:7, desc:"Granite coating, kam tel mein khana. Gas aur electric chulhe dono par chalta hai."},
+    {id:"p3", name:"Storage Jars Set (6)", cat:"Ghar & Kitchen", price:1350, icon:"jar", pop:6, desc:"Airtight dhakkan wale 6 jars, daal, chawal aur masalon ke liye. BPA-free plastic."},
+    {id:"p4", name:"Wireless Earbuds Pro", cat:"Gadgets", price:2999, old:4500, icon:"buds", pop:10, desc:"Bluetooth 5.3, 30 ghante battery case ke saath, touch controls aur saaf awaaz."},
+    {id:"p5", name:"Smart Watch Fit", cat:"Gadgets", price:3750, old:5200, icon:"watch", pop:8, desc:"Dil ki dharkan, qadam aur neend ka hisaab. WhatsApp notifications, 7 din battery."},
+    {id:"p6", name:"Power Bank 20000mAh", cat:"Gadgets", price:3290, icon:"bolt", pop:7, desc:"Fast charging, do phone ek saath. Chhota aur safar ke liye aasaan."},
+    {id:"p7", name:"Gents Casual Watch", cat:"Fashion", price:2150, icon:"watch", pop:5, desc:"Leather strap, pani se mehfooz dial. Rozana aur function dono ke liye."},
+    {id:"p8", name:"Ladies Handbag", cat:"Fashion", price:2690, old:3500, icon:"bag", pop:8, desc:"Teen khanon wala bag, mazboot zip aur lamba strap. Kai rangon mein."},
+    {id:"p9", name:"Hair Straightener", cat:"Beauty", price:2390, old:2900, icon:"comb", pop:6, desc:"Ceramic plates, 5 temperature settings, 60 second mein garam."},
+    {id:"p10", name:"Facial Massager Roller", cat:"Beauty", price:990, icon:"spark", pop:4, desc:"Chehre ki massage ke liye, thanda karne wala roller. Rozana 5 minute."}
+  ]
 };
-/* ======= PRODUCTS: naya product isi tarah add karein (img: "tasveer.jpg" bhi de sakte hain) ======= */
-const PRODUCTS = [
-  {id:"p1", name:"Electric Chopper 3-in-1", cat:"Ghar & Kitchen", price:2450, old:3200, icon:"blender", pop:9, desc:"Pyaaz, lehsan, sabzi aur qeema minto mein. 2 litre jar, stainless steel blades, USB charging."},
-  {id:"p2", name:"Non-stick Fry Pan 26cm", cat:"Ghar & Kitchen", price:1890, old:2400, icon:"pan", pop:7, desc:"Granite coating, kam tel mein khana. Gas aur electric chulhe dono par chalta hai."},
-  {id:"p3", name:"Storage Jars Set (6)", cat:"Ghar & Kitchen", price:1350, icon:"jar", pop:6, desc:"Airtight dhakkan wale 6 jars, daal, chawal aur masalon ke liye. BPA-free plastic."},
-  {id:"p4", name:"Wireless Earbuds Pro", cat:"Gadgets", price:2999, old:4500, icon:"buds", pop:10, desc:"Bluetooth 5.3, 30 ghante battery case ke saath, touch controls aur saaf awaaz."},
-  {id:"p5", name:"Smart Watch Fit", cat:"Gadgets", price:3750, old:5200, icon:"watch", pop:8, desc:"Dil ki dharkan, qadam aur neend ka hisaab. WhatsApp notifications, 7 din battery."},
-  {id:"p6", name:"Power Bank 20000mAh", cat:"Gadgets", price:3290, icon:"bolt", pop:7, desc:"Fast charging, do phone ek saath. Chhota aur safar ke liye aasaan."},
-  {id:"p7", name:"Gents Casual Watch", cat:"Fashion", price:2150, icon:"watch", pop:5, desc:"Leather strap, pani se mehfooz dial. Rozana aur function dono ke liye."},
-  {id:"p8", name:"Ladies Handbag", cat:"Fashion", price:2690, old:3500, icon:"bag", pop:8, desc:"Teen khanon wala bag, mazboot zip aur lamba strap. Kai rangon mein."},
-  {id:"p9", name:"Hair Straightener", cat:"Beauty", price:2390, old:2900, icon:"comb", pop:6, desc:"Ceramic plates, 5 temperature settings, 60 second mein garam."},
-  {id:"p10", name:"Facial Massager Roller", cat:"Beauty", price:990, icon:"spark", pop:4, desc:"Chehre ki massage ke liye, thanda karne wala roller. Rozana 5 minute."}
-];
-const CAT_COLORS = {"Ghar & Kitchen":"#ffe3e8","Gadgets":"#e3ecff","Fashion":"#fff0dc","Beauty":"#f6e3ff"};
-const SLIDES = [
-  {tag:"Naya stock", title:"Gadgets sale, 35% tak off", text:"Earbuds, smart watches aur power banks, Cash on Delivery ke saath.", icon:"buds", cat:"Gadgets"},
-  {tag:"Ghar ke liye", title:"Kitchen ka kaam ab aasaan", text:"Chopper, fry pan aur storage jars, sab ek jagah.", icon:"blender", cat:"Ghar & Kitchen", dark:true},
-  {tag:"Fashion", title:"Bags aur watches ki nayi range", text:"Rozana aur function dono ke liye stylish cheezein.", icon:"bag", cat:"Fashion"}
-];
-/* ==================================================== */
-
 const ICONS={
  blender:'<path d="M30 15h40l-6 50H36z" fill="#e4002b"/><path d="M34 15h10l-3 50h-5z" fill="#fff" opacity=".35"/><rect x="28" y="65" width="44" height="22" rx="5" fill="#141416"/><circle cx="50" cy="76" r="5" fill="#fff"/>',
  pan:'<circle cx="42" cy="55" r="28" fill="#141416"/><circle cx="42" cy="55" r="20" fill="#3c3c44"/><path d="M30 46a14 14 0 0 1 10-5" stroke="#fff" stroke-width="3" opacity=".5" fill="none"/><rect x="66" y="50" width="30" height="10" rx="5" fill="#e4002b"/>',
@@ -282,57 +277,84 @@ const ICONS={
  spark:'<rect x="46" y="44" width="8" height="46" rx="4" fill="#141416"/><ellipse cx="50" cy="30" rx="22" ry="12" fill="#e4002b"/><circle cx="50" cy="30" r="5" fill="#fff"/>'
 };
 const CAT_ICON={"Ghar & Kitchen":"pan","Gadgets":"buds","Fashion":"bag","Beauty":"comb"};
+const CAT_BG=["#ffe3e8","#e3ecff","#fff0dc","#f6e3ff","#e2f6ea","#fde9d9"];
 const $=s=>document.querySelector(s);
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const money=n=>CONFIG.currency+" "+Number(n).toLocaleString("en-PK");
-const svg=(i,extra)=>'<svg viewBox="0 0 100 100" aria-hidden="true"'+(extra||'')+'>'+(ICONS[i]||ICONS.bag)+'</svg>';
-const pic=p=>p.img?'<img src="'+esc(p.img)+'" alt="'+esc(p.name)+'">':svg(p.icon);
-const off=p=>p.old?Math.round((1-p.price/p.old)*100):0;
-let cat="Sab", cart={};
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num=v=>{const n=Number(v);return isFinite(n)?n:0};
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+let CONFIG,PRODUCTS,SLIDES,cats=["Sab"],cat="Sab",cart={};
+
+async function load(){
+  try{const r=await fetch("store.json?t="+Date.now(),{cache:"no-store"});if(r.ok){const d=await r.json();if(d&&typeof d==="object")return{d,real:true}}}catch(e){}
+  return{d:DEFAULT,real:false};
+}
+load().then(({d,real})=>{
+  CONFIG=Object.assign({},DEFAULT.config,d.config||{});
+  PRODUCTS=(Array.isArray(d.products)?d.products:DEFAULT.products).filter(p=>p&&p.id&&p.name).map(p=>Object.assign({},p,{price:num(p.price),old:num(p.old),pop:num(p.pop)}));
+  SLIDES=(Array.isArray(d.banners)&&d.banners.length?d.banners:DEFAULT.banners);
+  if(real)$("#sampleNote").hidden=true;
+  start();
+});
+
+function start(){
+const money=n=>(CONFIG.currency||"Rs")+" "+Number(n).toLocaleString("en-PK");
+const svg=i=>'<svg viewBox="0 0 100 100" aria-hidden="true">'+(ICONS[i]||ICONS.bag)+'</svg>';
+const pic=p=>p.img?'<img src="'+esc(p.img)+'" alt="'+esc(p.name)+'" loading="lazy">':svg(p.icon);
+const off=p=>p.old>p.price?Math.round((1-p.price/p.old)*100):0;
+const wa=String(CONFIG.whatsapp||"").replace(/\D/g,"");
 try{cart=JSON.parse(localStorage.getItem("eb_cart")||"{}")||{}}catch(e){cart={}}
 const save=()=>{try{localStorage.setItem("eb_cart",JSON.stringify(cart))}catch(e){}};
 const byId=id=>PRODUCTS.find(p=>p.id===id);
-for(const id in cart){if(!byId(id))delete cart[id]}
+for(const id in cart){if(!byId(id)||!(cart[id]>0))delete cart[id]}
 
-/* static text */
-const nm=CONFIG.storeName.split(" ");
+const nm=String(CONFIG.storeName||"Store").split(" ");
 const logoHTML=esc(nm[0])+(nm.length>1?'<span> '+esc(nm.slice(1).join(" "))+'</span>':'');
 $("#logoTxt").innerHTML=logoHTML;$("#footLogo").innerHTML=logoHTML;document.title=CONFIG.storeName;
-$("#waText").textContent="+"+CONFIG.whatsapp;$("#utilWa").textContent="+"+CONFIG.whatsapp;
+$("#waText").textContent="+"+wa;$("#utilWa").textContent="+"+wa;
 $("#utilFree").textContent=money(CONFIG.freeDeliveryOver)+" se zyada ke order par delivery free";
 $("#delText").textContent="Poore Pakistan mein 3–5 din. Delivery charges "+money(CONFIG.deliveryFee)+", aur "+money(CONFIG.freeDeliveryOver)+" se zyada ke order par free.";
 $("#year").textContent="© "+new Date().getFullYear()+" "+CONFIG.storeName+". Tamam huqooq mehfooz hain.";
-$("#promoA").innerHTML=ICONS.blender;$("#promoB").innerHTML=ICONS.watch;
 
-const cats=["Sab",...new Set(PRODUCTS.map(p=>p.cat))];
-function card(p){return '<article class="card">'+(off(p)?'<span class="badge">-'+off(p)+'%</span>':'')+'<button class="thumb" data-view="'+esc(p.id)+'" aria-label="'+esc(p.name)+' dekhein">'+pic(p)+'</button><div class="cbody"><span class="ccat">'+esc(p.cat)+'</span><h3>'+esc(p.name)+'</h3><div class="price">'+money(p.price)+(p.old?'<span class="old">'+money(p.old)+'</span>':'')+'</div><button class="add" data-add="'+esc(p.id)+'">Cart mein daalein</button></div></article>'}
+cats=["Sab",...new Set(PRODUCTS.map(p=>p.cat||"Doosri cheezein"))];
+PRODUCTS.forEach(p=>{if(!p.cat)p.cat="Doosri cheezein"});
+const catPic=c=>{const p=PRODUCTS.find(x=>x.cat===c&&x.img);return p?'<img src="'+esc(p.img)+'" alt="">':svg(CAT_ICON[c]||(PRODUCTS.find(x=>x.cat===c)||{}).icon||"bag")};
+
+/* promos: first two categories */
+[["#promoA",cats[1],"Behtareen cheezein, munasib daam"],["#promoB",cats[2],"Nayi range dekhein"]].forEach(([sel,c,line])=>{
+  const el=$(sel);if(!c){el.hidden=true;return}
+  el.innerHTML='<div><h3>'+esc(c)+'</h3><p style="margin:0 0 14px;opacity:.85">'+esc(line)+'</p><button class="btn" data-c="'+esc(c)+'">Abhi dekhein</button></div>'+catPic(c).replace('<img ','<img class="pimg" ');
+});
+
+function card(p){return '<article class="card">'+(off(p)?'<span class="badge">-'+off(p)+'%</span>':'')+'<button class="thumb" data-view="'+esc(p.id)+'" aria-label="'+esc(p.name)+' dekhein">'+pic(p)+'</button><div class="cbody"><span class="ccat">'+esc(p.cat)+'</span><h3>'+esc(p.name)+'</h3><div class="price">'+money(p.price)+(off(p)?'<span class="old">'+money(p.old)+'</span>':'')+'</div><button class="add" data-add="'+esc(p.id)+'">Cart mein daalein</button></div></article>'}
 function renderCats(){
-  const pr=c=>'aria-pressed="'+(c===cat)+'"';
-  $("#navCats").innerHTML=cats.map(c=>'<button data-c="'+esc(c)+'" '+pr(c)+'>'+esc(c==="Sab"?"Tamam products":c)+'</button>').join("");
-  $("#sideCats").innerHTML=cats.map(c=>'<button data-c="'+esc(c)+'" '+pr(c)+'><span>'+esc(c==="Sab"?"Tamam products":c)+'</span><span aria-hidden="true">›</span></button>').join("");
-  $("#rcats").innerHTML=cats.filter(c=>c!=="Sab").map(c=>'<button class="rcat" data-c="'+esc(c)+'" '+pr(c)+'><div class="c" style="background:'+esc(CAT_COLORS[c]||"#f5f5f7")+'">'+svg(CAT_ICON[c]||"bag")+'</div>'+esc(c)+'</button>').join("");
+  const pr=c=>'aria-pressed="'+(c===cat)+'"', lbl=c=>esc(c==="Sab"?"Tamam products":c);
+  $("#navCats").innerHTML=cats.map(c=>'<button data-c="'+esc(c)+'" '+pr(c)+'>'+lbl(c)+'</button>').join("");
+  $("#sideCats").innerHTML=cats.map(c=>'<button data-c="'+esc(c)+'" '+pr(c)+'><span>'+lbl(c)+'</span><span aria-hidden="true">›</span></button>').join("");
+  $("#rcats").innerHTML=cats.slice(1).map((c,i)=>'<button class="rcat" data-c="'+esc(c)+'" '+pr(c)+'><div class="c" style="background:'+CAT_BG[i%CAT_BG.length]+'">'+catPic(c)+'</div>'+esc(c)+'</button>').join("");
 }
 function renderGrid(){
   const q=$("#q").value.trim().toLowerCase(), s=$("#sort").value;
-  let list=PRODUCTS.filter(p=>(cat==="Sab"||p.cat===cat)&&(p.name+" "+p.desc+" "+p.cat).toLowerCase().includes(q));
+  let list=PRODUCTS.filter(p=>(cat==="Sab"||p.cat===cat)&&(p.name+" "+(p.desc||"")+" "+p.cat).toLowerCase().includes(q));
   list.sort((a,b)=>s==="low"?a.price-b.price:s==="high"?b.price-a.price:b.pop-a.pop);
   $("#shopTitle").innerHTML=cat==="Sab"?'Tamam <span>products</span>':esc(cat);
   $("#grid").innerHTML=list.length?list.map(card).join(""):'<div class="empty">Koi product nahi mila. Doosra lafz likh kar dekhein.</div>';
 }
-$("#flash").innerHTML=PRODUCTS.filter(p=>p.old).sort((a,b)=>off(b)-off(a)).map(card).join("");
-$("#track").innerHTML=SLIDES.map(s=>'<div class="slide'+(s.dark?' dk':'')+'"><div><span class="tag">'+esc(s.tag)+'</span><h1>'+esc(s.title)+'</h1><p>'+esc(s.text)+'</p><button class="btn" data-c="'+esc(s.cat)+'">Abhi khareedein</button></div>'+'<svg viewBox="0 0 100 100" aria-hidden="true"><ellipse cx="50" cy="93" rx="34" ry="5" fill="#000" opacity=".25"/><circle cx="50" cy="50" r="44" fill="#fff" opacity=".1"/>'+ICONS[s.icon]+'</svg></div>').join("");
-$("#dots").innerHTML=SLIDES.map((s,i)=>'<i class="'+(i?'':'on')+'"></i>').join("");
+const deals=PRODUCTS.filter(p=>off(p)).sort((a,b)=>off(b)-off(a));
+if(deals.length)$("#flash").innerHTML=deals.map(card).join("");else $("#flash").closest("section").hidden=true;
 
-const track=$("#track");let slideIx=0;
-const go=i=>{slideIx=(i+SLIDES.length)%SLIDES.length;track.scrollTo({left:slideIx*track.clientWidth,behavior:"smooth"})};
+const slideIcon=(s,i)=>s.img?'<img class="simg" src="'+esc(s.img)+'" alt="">':'<svg viewBox="0 0 100 100" aria-hidden="true"><ellipse cx="50" cy="93" rx="34" ry="5" fill="#000" opacity=".25"/><circle cx="50" cy="50" r="44" fill="#fff" opacity=".1"/>'+(ICONS[CAT_ICON[s.cat]]||ICONS[["buds","blender","bag"][i%3]])+'</svg>';
+$("#track").innerHTML=SLIDES.map((s,i)=>'<div class="slide'+(i%2?' dk':'')+'"><div>'+(s.tag?'<span class="tag">'+esc(s.tag)+'</span>':'')+'<h1>'+esc(s.title)+'</h1><p>'+esc(s.text)+'</p><button class="btn" data-c="'+esc(cats.includes(s.cat)?s.cat:"Sab")+'">Abhi khareedein</button></div>'+slideIcon(s,i)+'</div>').join("");
+$("#dots").innerHTML=SLIDES.map((s,i)=>'<i class="'+(i?'':'on')+'"></i>').join("");
+if(SLIDES.length<2){$(".arrows").hidden=true;$("#dots").hidden=true}
+const track=$("#track");let slideIx=0,paused=false;
+const go=i=>{slideIx=(i+SLIDES.length)%SLIDES.length;track.scrollTo({left:slideIx*track.clientWidth,behavior:reduce?"auto":"smooth"})};
 track.addEventListener("scroll",()=>{const i=Math.round(track.scrollLeft/track.clientWidth);slideIx=i;document.querySelectorAll("#dots i").forEach((d,k)=>d.classList.toggle("on",k===i))},{passive:true});
 $("#prev").addEventListener("click",()=>go(slideIx-1));$("#next").addEventListener("click",()=>go(slideIx+1));
 track.tabIndex=0;track.addEventListener("keydown",e=>{if(e.key==="ArrowRight")go(slideIx+1);if(e.key==="ArrowLeft")go(slideIx-1)});
-const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
-let paused=false;track.addEventListener("pointerenter",()=>paused=true);track.addEventListener("pointerleave",()=>paused=false);
-const auto=setInterval(()=>{if(!reduce&&!paused&&!document.hidden)go(slideIx+1)},6000);
+track.addEventListener("pointerenter",()=>paused=true);track.addEventListener("pointerleave",()=>paused=false);
+setInterval(()=>{if(!reduce&&!paused&&!document.hidden&&SLIDES.length>1)go(slideIx+1)},6000);
 
-function totals(){let sub=0,n=0;for(const id in cart){const p=byId(id);sub+=p.price*cart[id];n+=cart[id]}const del=n===0||sub>=CONFIG.freeDeliveryOver?0:CONFIG.deliveryFee;return{sub,n,del,total:sub+del}}
+function totals(){let sub=0,n=0;for(const id in cart){const p=byId(id);sub+=p.price*cart[id];n+=cart[id]}const del=n===0||sub>=num(CONFIG.freeDeliveryOver)?0:num(CONFIG.deliveryFee);return{sub,n,del,total:sub+del}}
 function saved(){try{return JSON.parse(localStorage.getItem("eb_buyer")||"{}")||{}}catch(e){return{}}}
 function renderCart(){
   const t=totals();$("#cnt").textContent=t.n;
@@ -341,13 +363,13 @@ function renderCart(){
   const f=saved();
   $("#dbody").innerHTML=lines+'<div class="sum"><span>Products</span><span>'+money(t.sub)+'</span><span>Delivery</span><span>'+(t.del?money(t.del):"Free")+'</span><span class="t">Kul raqam</span><span class="t">'+money(t.total)+'</span></div>'+
   '<p class="sample" style="margin:0 0 10px">Paise parcel milne par dene hain (Cash on Delivery).</p>'+
-  '<form id="of" novalidate><label>Poora naam<input id="fn" autocomplete="name" value="'+esc(f.fn||"")+'"></label><label>Mobile number<input id="fp" type="tel" inputmode="tel" placeholder="03XX XXXXXXX" autocomplete="tel" value="'+esc(f.fp||"")+'"></label><label>Shehar<input id="fc" autocomplete="address-level2" value="'+esc(f.fc||"")+'"></label><label>Mukammal pata<textarea id="fa" rows="2" autocomplete="street-address">'+esc(f.fa||"")+'</textarea></label><label>Koi note (optional)<input id="fx" placeholder="Rang, size waghaira"></label><p class="err" id="err"></p><button class="wa" type="submit">Order tayar karein</button></form><div id="sendBox" style="display:grid;gap:10px;margin-top:10px"></div>';
+  '<form id="of" novalidate><label>Poora naam<input id="fn" autocomplete="name" value="'+esc(f.fn)+'"></label><label>Mobile number<input id="fp" type="tel" inputmode="tel" placeholder="03XX XXXXXXX" autocomplete="tel" value="'+esc(f.fp)+'"></label><label>Shehar<input id="fc" autocomplete="address-level2" value="'+esc(f.fc)+'"></label><label>Mukammal pata<textarea id="fa" rows="2" autocomplete="street-address">'+esc(f.fa)+'</textarea></label><label>Koi note (optional)<input id="fx" placeholder="Rang, size waghaira"></label><p class="err" id="err"></p><button class="wa" type="submit">Order tayar karein</button></form><div id="sendBox" style="display:grid;gap:10px;margin-top:10px"></div>';
 }
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove("on"),1600)}
 function add(id){cart[id]=(cart[id]||0)+1;save();renderCart();toast("Cart mein daal diya")}
 function openCart(){$("#drawer").classList.add("on");$("#drawer").setAttribute("aria-hidden","false");$("#shade").classList.add("on");$("#closeCart").focus()}
 function closeAll(){$("#drawer").classList.remove("on");$("#drawer").setAttribute("aria-hidden","true");$("#modal").classList.remove("on");$("#shade").classList.remove("on")}
-function view(id){const p=byId(id);$("#modal").innerHTML='<div class="mgrid"><div class="thumb">'+pic(p)+'</div><div class="minfo"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="ccat">'+esc(p.cat)+'</span><button class="x" data-close aria-label="Band karein">×</button></div><h2>'+esc(p.name)+'</h2><div class="price" style="font-size:24px">'+money(p.price)+(p.old?'<span class="old">'+money(p.old)+'</span>':'')+'</div><p style="margin:0">'+esc(p.desc)+'</p><p class="sample" style="margin:0">Cash on Delivery · 3–5 din delivery</p><button class="add" data-add="'+esc(p.id)+'" data-then="cart">Cart mein daalein</button></div></div>';$("#modal").classList.add("on");$("#shade").classList.add("on")}
+function view(id){const p=byId(id);$("#modal").innerHTML='<div class="mgrid"><div class="thumb">'+pic(p)+'</div><div class="minfo"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="ccat">'+esc(p.cat)+'</span><button class="x" data-close aria-label="Band karein">×</button></div><h2>'+esc(p.name)+'</h2><div class="price" style="font-size:24px">'+money(p.price)+(off(p)?'<span class="old">'+money(p.old)+'</span>':'')+'</div><p style="margin:0;white-space:pre-line">'+esc(p.desc)+'</p><p class="sample" style="margin:0">Cash on Delivery · 3–5 din delivery</p><button class="add" data-add="'+esc(p.id)+'" data-then="cart">Cart mein daalein</button></div></div>';$("#modal").classList.add("on");$("#shade").classList.add("on")}
 function pick(c){cat=c;renderCats();renderGrid();$("#shop").scrollIntoView({behavior:reduce?"auto":"smooth"})}
 
 function buildOrder(){
@@ -359,12 +381,12 @@ function buildOrder(){
   const t=totals();
   const items=Object.keys(cart).map((id,i)=>{const p=byId(id);return (i+1)+". "+p.name+" × "+cart[id]+" = "+money(p.price*cart[id])}).join("\n");
   const msg="Assalam o Alaikum "+CONFIG.storeName+"! Mujhe yeh order karna hai:\n\n"+items+"\n\nProducts: "+money(t.sub)+"\nDelivery: "+(t.del?money(t.del):"Free")+"\nKul: "+money(t.total)+" (Cash on Delivery)\n\nNaam: "+f.fn+"\nMobile: "+f.fp+"\nShehar: "+f.fc+"\nPata: "+f.fa+(f.fx?"\nNote: "+f.fx:"");
-  const url="https://wa.me/"+encodeURIComponent(CONFIG.whatsapp)+"?text="+encodeURIComponent(msg);
+  const url="https://wa.me/"+wa+"?text="+encodeURIComponent(msg);
   const box=$("#sendBox");box.innerHTML="";
   const a=document.createElement("a");a.className="wa go";a.href=url;a.target="_blank";a.rel="noopener";a.textContent="WhatsApp par order bhejein ✓";
   const c=document.createElement("button");c.className="ghost";c.type="button";c.textContent="Order ka message copy karein";
   c.addEventListener("click",()=>{navigator.clipboard.writeText(msg).then(()=>toast("Copy ho gaya"),()=>toast("Copy nahi hua"))});
-  const n=document.createElement("p");n.className="sample";n.textContent="WhatsApp na khule to message copy kar ke +"+CONFIG.whatsapp+" par bhej dein.";
+  const n=document.createElement("p");n.className="sample";n.textContent="WhatsApp na khule to message copy kar ke +"+wa+" par bhej dein.";
   box.append(a,c,n);a.focus();
 }
 
@@ -385,6 +407,7 @@ $("#shade").addEventListener("click",closeAll);
 $("#q").addEventListener("input",renderGrid);
 $("#sort").addEventListener("change",renderGrid);
 renderCats();renderGrid();renderCart();
+}
 }
 </script>
 </body>

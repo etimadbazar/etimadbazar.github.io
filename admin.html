@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ur-Latn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Store Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: calm shop back-office, plain and safe for a non-technical owner
+   IDEA: the shopkeeper's ledger behind the counter
+   PICTURE: the working product list itself, with photos
+   COLOUR and TYPE: white, near-black ink, store red for actions; Jost
+   LAYOUT: one column of numbered panels, sticky save bar at the bottom */
+:root{color-scheme:light dark;--bg:light-dark(#f5f5f7,#121214);--card:light-dark(#fff,#1c1c20);--ink:light-dark(#141416,#f2f2f4);--mute:light-dark(#6c6c75,#a4a4ad);--line:light-dark(#e3e3e8,#2f2f36);--red:#e4002b;--ok:#1f9d55}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Jost,system-ui,sans-serif;padding-bottom:96px}
+h1,h2,h3{margin:0;line-height:1.1}
+h1{font-size:clamp(26px,4vw,34px);font-weight:800}h1 span{color:var(--red)}
+h2{font-size:21px;font-weight:700;display:flex;gap:10px;align-items:center}
+h2 b{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--red);color:#fff;font-size:15px;flex:none}
+.top{background:#141416;color:#fff;padding:16px max(4vw,16px)}
+.top .in{max-width:860px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.top a{color:#fff}
+main{max-width:860px;margin:0 auto;padding:20px max(4vw,16px);display:grid;gap:18px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;gap:14px}
+.help{color:var(--mute);font-size:15px;margin:0}
+ol.help{padding-left:20px;display:grid;gap:4px}
+label{display:grid;gap:4px;font-weight:600;font-size:14px}
+input,textarea,select{font:inherit;font-size:16px;color:inherit;min-height:46px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);width:100%}
+textarea{min-height:90px;resize:vertical}
+.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+button{font:inherit;cursor:pointer}
+.btn{min-height:46px;padding:0 18px;border-radius:8px;border:0;background:var(--red);color:#fff;font-weight:600}
+.btn.dark{background:#141416}.btn.ghost{background:transparent;color:inherit;border:1px solid var(--line)}
+.btn.small{min-height:40px;padding:0 12px;font-size:15px}
+.btn:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.msg{padding:10px 14px;border-radius:8px;font-weight:500;margin:0}
+.msg.ok{background:#e2f6ea;color:#0f5a2f}.msg.bad{background:#ffe3e8;color:#8f0018}.msg.info{background:light-dark(#eef1ff,#22263a);color:inherit}
+.plist{display:grid;gap:10px}
+.prow{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px}
+.ph{width:64px;height:64px;border-radius:8px;background:var(--bg);display:grid;place-items:center;overflow:hidden;color:var(--mute);font-size:12px;text-align:center}
+.ph img{width:100%;height:100%;object-fit:cover}
+.prow .nm{font-weight:600}.prow .sub{color:var(--mute);font-size:14px}
+.acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.editor{border:2px solid var(--red);border-radius:12px;padding:16px;display:grid;gap:12px}
+.imgpick{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;align-items:center}
+.imgpick .ph{width:120px;height:120px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px max(4vw,16px);z-index:10}
+.bar .in{max-width:860px;margin:0 auto;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.bar .st{color:var(--mute);font-size:15px}
+.bar .st.dirty{color:var(--red);font-weight:600}
+.banner{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:10px}
+details summary{cursor:pointer;font-weight:600;min-height:32px}
+@media(max-width:600px){.row,.row3{grid-template-columns:1fr}.prow{grid-template-columns:56px minmax(0,1fr)}.prow .acts{grid-column:1/-1;justify-content:stretch}.prow .acts .btn{flex:1}.ph{width:56px;height:56px}.imgpick{grid-template-columns:90px minmax(0,1fr)}.imgpick .ph{width:90px;height:90px}}
+</style>
+</head>
+<body>
+<div class="top"><div class="in"><h1>Admin <span>Panel</span></h1><a href="./" id="siteLink">Website dekhein ↗</a></div></div>
+<main>
+
+<!-- LOGIN -->
+<section class="panel" id="loginPanel">
+  <h2><b>1</b>GitHub se connect karein</h2>
+  <p class="help">Yeh panel aap ki website ki files seedha GitHub par badalta hai. Is ke liye ek dafa GitHub "token" (chaabi) chahiye. Token sirf isi browser mein mehfooz rehta hai, website par kisi ko nazar nahi aata. Kisi ke saath share mat karein.</p>
+  <details><summary>Token kaise banayein? (ek dafa ka kaam)</summary>
+    <ol class="help">
+      <li>GitHub par profile tasveer → <b>Settings</b> → bilkul neeche <b>Developer settings</b>.</li>
+      <li><b>Personal access tokens</b> → <b>Fine-grained tokens</b> → <b>Generate new token</b>.</li>
+      <li>Token name: <i>store admin</i>. Expiration: 1 saal (ya jitna chahein).</li>
+      <li><b>Resource owner</b> mein <b>etimadbazar</b> chunein.</li>
+      <li><b>Repository access</b> → <b>Only select repositories</b> → <b>etimadbazar.github.io</b>.</li>
+      <li><b>Permissions</b> → <b>Repository permissions</b> → <b>Contents</b> → <b>Read and write</b>.</li>
+      <li><b>Generate token</b> dabayein, token copy karein aur neeche paste karein.</li>
+      <li>Agar GitHub "approval" maange: organization <b>etimadbazar</b> → Settings → Personal access tokens → Pending requests → Approve.</li>
+    </ol>
+  </details>
+  <div class="row">
+    <label>GitHub owner<input id="owner" autocomplete="off" spellcheck="false"></label>
+    <label>Repository<input id="repo" autocomplete="off" spellcheck="false"></label>
+  </div>
+  <label>Token<input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>
+  <button class="btn" id="connect">Connect karein</button>
+  <p class="msg" id="loginMsg" hidden></p>
+</section>
+
+<div id="app" hidden style="display:grid;gap:18px">
+<!-- SETTINGS -->
+<section class="panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2><b>1</b>Store ki settings</h2><button class="btn ghost small" id="logout">Logout</button></div>
+  <div class="row">
+    <label>Store ka naam<input id="sName" data-cfg="storeName"></label>
+    <label>WhatsApp number (92 se shuru)<input id="sWa" data-cfg="whatsapp" inputmode="numeric" placeholder="923001234567"></label>
+  </div>
+  <div class="row">
+    <label>Delivery charges (Rs)<input type="number" min="0" data-cfg="deliveryFee"></label>
+    <label>Is se zyada par delivery free (Rs)<input type="number" min="0" data-cfg="freeDeliveryOver"></label>
+  </div>
+  <p class="help" id="waHelp"></p>
+</section>
+
+<!-- PRODUCTS -->
+<section class="panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2><b>2</b>Products <span class="help" id="pCount"></span></h2><button class="btn dark small" id="addP">+ Naya product</button></div>
+  <div id="editorBox"></div>
+  <input id="pSearch" type="search" placeholder="Product dhoondein…" aria-label="Product dhoondein">
+  <div class="plist" id="plist"></div>
+</section>
+
+<!-- BANNERS -->
+<section class="panel">
+  <h2><b>3</b>Upar wale banners</h2>
+  <p class="help">Website ke upar badalne wale laal/kaale banners ki likhai. Category wohi likhein jo products mein hai, taa ke button sahi products khole.</p>
+  <div id="banners" style="display:grid;gap:12px"></div>
+  <button class="btn ghost small" id="addB" style="justify-self:start">+ Banner add karein</button>
+</section>
+</div>
+<datalist id="catList"></datalist>
+</main>
+
+<div class="bar" id="bar" hidden><div class="in">
+  <span class="st" id="st">Sab kuch save hai</span>
+  <button class="btn" id="saveAll">Website par save karein</button>
+</div></div>
+
+<script>
+{
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const LS={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
+const EMPTY={config:{storeName:"Etimad Bazar",whatsapp:"",deliveryFee:200,freeDeliveryOver:3000,currency:"Rs"},banners:[],products:[]};
+let auth=null,data=null,sha=null,dirty=false,editing=null,pending=null;
+
+/* guess owner/repo from the address, e.g. etimadbazar.github.io */
+const h=location.hostname,m=h.match(/^([^.]+)\.github\.io$/i);
+$("#owner").value=LS.get("eb_owner")||(m?m[1]:"etimadbazar");
+$("#repo").value=LS.get("eb_repo")||(m?h.toLowerCase():"etimadbazar.github.io");
+
+/* ---------- GitHub API ---------- */
+const b64=bytes=>{let s="";const ch=0x8000;for(let i=0;i<bytes.length;i+=ch)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+ch));return btoa(s)};
+const enc=str=>b64(new TextEncoder().encode(str));
+const dec=b=>new TextDecoder().decode(Uint8Array.from(atob(b.replace(/\s/g,"")),c=>c.charCodeAt(0)));
+async function gh(path,opt={}){
+  const r=await fetch("https://api.github.com/repos/"+encodeURIComponent(auth.owner)+"/"+encodeURIComponent(auth.repo)+path,{...opt,headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+auth.token,"X-GitHub-Api-Version":"2022-11-28",...(opt.body?{"Content-Type":"application/json"}:{})}});
+  if(r.status===404)return{status:404};
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const e=new Error(j.message||("GitHub error "+r.status));e.status=r.status;throw e}
+  return{status:r.status,json:j};
+}
+const errText=e=>e.status===401?"Token ghalat hai ya expire ho gaya. Naya token banayein.":e.status===403?"Token ko is repository mein likhne ki ijazat nahi. Token mein Contents: Read and write zaroor dein (ya organization mein approve karein).":e.status===409||e.status===422?"File beech mein kisi aur jagah se badli gayi. Page refresh kar ke dobara koshish karein.":(e.message==="Failed to fetch"?"Internet ka masla. Connection check karein.":e.message);
+
+/* ---------- login ---------- */
+function msg(el,type,text){el.className="msg "+type;el.textContent=text;el.hidden=false}
+async function connect(saved){
+  const owner=$("#owner").value.trim(),repo=$("#repo").value.trim(),token=saved||$("#token").value.trim();
+  if(!owner||!repo||!token){msg($("#loginMsg"),"bad","Owner, repository aur token teeno likhein.");return}
+  auth={owner,repo,token};$("#connect").disabled=true;msg($("#loginMsg"),"info","Connect ho raha hai…");
+  try{
+    const repoInfo=await gh("");
+    if(repoInfo.status===404)throw Object.assign(new Error("Repository nahi mili. Owner aur repository ka naam check karein, aur token mein yeh repository chunein."),{status:404});
+    if(repoInfo.json.permissions&&!repoInfo.json.permissions.push)throw Object.assign(new Error(""),{status:403});
+    const f=await gh("/contents/store.json");
+    if(f.status===404){data=JSON.parse(JSON.stringify(EMPTY));sha=null;
+      try{const r=await fetch("store.json",{cache:"no-store"});if(r.ok)data=await r.json()}catch(e){}
+    }else{sha=f.json.sha;data=JSON.parse(dec(f.json.content))}
+    data.config=Object.assign({},EMPTY.config,data.config||{});data.products=Array.isArray(data.products)?data.products:[];data.banners=Array.isArray(data.banners)?data.banners:[];
+    LS.set("eb_owner",owner);LS.set("eb_repo",repo);LS.set("eb_token",token);
+    $("#loginPanel").hidden=true;$("#app").hidden=false;$("#bar").hidden=false;$("#token").value="";
+    renderAll();setDirty(sha===null);
+  }catch(e){auth=null;msg($("#loginMsg"),"bad",errText(e));if(saved)LS.del("eb_token")}
+  $("#connect").disabled=false;
+}
+$("#connect").addEventListener("click",()=>connect());
+$("#logout").addEventListener("click",()=>{if(dirty&&!confirmInline())return;LS.del("eb_token");location.reload()});
+function confirmInline(){const b=$("#logout");if(b.dataset.sure){return true}b.dataset.sure="1";b.textContent="Changes save nahi hue. Phir bhi logout?";setTimeout(()=>{delete b.dataset.sure;b.textContent="Logout"},4000);return false}
+
+/* ---------- state ---------- */
+function setDirty(d){dirty=d;const s=$("#st");s.textContent=d?"Changes abhi save nahi hue":"Sab kuch save hai";s.classList.toggle("dirty",d)}
+window.addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.returnValue=""}});
+function renderAll(){renderCfg();renderList();renderBanners();renderCats()}
+function renderCats(){$("#catList").innerHTML=[...new Set(data.products.map(p=>p.cat).filter(Boolean))].map(c=>'<option value="'+esc(c)+'">').join("")}
+
+/* ---------- settings ---------- */
+function renderCfg(){document.querySelectorAll("[data-cfg]").forEach(i=>i.value=data.config[i.dataset.cfg]??"");waHelp()}
+function waHelp(){const d=String(data.config.whatsapp||"").replace(/\D/g,"");$("#waHelp").textContent=!d?"⚠️ WhatsApp number zaroor likhein, warna orders nahi aayenge.":(/^92\d{10}$/.test(d)?"✓ Orders is number par aayenge: +"+d:"⚠️ Number 92 se shuru ho aur 12 digits ka ho, maslan 923001234567 (shuru ka 0 hata dein).")}
+document.querySelectorAll("[data-cfg]").forEach(i=>i.addEventListener("input",()=>{const k=i.dataset.cfg;data.config[k]=i.type==="number"?Number(i.value||0):(k==="whatsapp"?i.value.replace(/\D/g,""):i.value);setDirty(true);if(k==="whatsapp")waHelp()}));
+
+/* ---------- products ---------- */
+const money=n=>"Rs "+Number(n||0).toLocaleString("en-PK");
+const imgUrl=p=>p?(p.startsWith("data:")||p.startsWith("http")?p:"https://raw.githubusercontent.com/"+auth.owner+"/"+auth.repo+"/HEAD/"+p.split("/").map(encodeURIComponent).join("/")):"";
+function renderList(){
+  const q=$("#pSearch").value.trim().toLowerCase();
+  const list=data.products.filter(p=>(p.name+" "+(p.cat||"")).toLowerCase().includes(q));
+  $("#pCount").textContent="("+data.products.length+")";
+  $("#plist").innerHTML=list.length?list.map(p=>'<div class="prow"><div class="ph">'+(p.img?'<img src="'+esc(imgUrl(p.img))+'" alt="">':'Tasveer nahi')+'</div><div><div class="nm">'+esc(p.name)+'</div><div class="sub">'+esc(p.cat||"Bina category")+' · '+money(p.price)+(p.old>p.price?' <s>'+money(p.old)+'</s>':'')+'</div></div><div class="acts"><button class="btn ghost small" data-edit="'+esc(p.id)+'">Edit</button><button class="btn ghost small" data-del="'+esc(p.id)+'">Delete</button></div></div>').join(""):'<p class="help">Abhi koi product nahi. "+ Naya product" dabayein.</p>';
+}
+$("#pSearch").addEventListener("input",renderList);
+$("#addP").addEventListener("click",()=>openEditor(null));
+function openEditor(id){
+  const p=id?data.products.find(x=>x.id===id):{id:"p"+Date.now().toString(36),name:"",cat:"",price:"",old:"",desc:"",img:"",pop:5};
+  editing={...p,isNew:!id};pending=null;
+  $("#editorBox").innerHTML='<div class="editor"><h3>'+(id?"Product badlein":"Naya product")+'</h3>'+
+  '<div class="imgpick"><div class="ph" id="ePh">'+(p.img?'<img src="'+esc(imgUrl(p.img))+'" alt="">':'Tasveer nahi')+'</div><div style="display:grid;gap:8px"><label>Tasveer chunein<input type="file" id="eFile" accept="image/*"></label><p class="help" id="eImgMsg">JPG ya PNG. Badi tasveer khud chhoti kar di jayegi.</p></div></div>'+
+  '<label>Product ka naam *<input id="eName" value="'+esc(p.name)+'"></label>'+
+  '<div class="row3"><label>Qeemat (Rs) *<input id="ePrice" type="number" min="0" value="'+esc(p.price)+'"></label><label>Purani qeemat (Rs)<input id="eOld" type="number" min="0" value="'+esc(p.old||"")+'" placeholder="Discount ke liye"></label><label>Category *<input id="eCat" list="catList" value="'+esc(p.cat)+'" placeholder="Maslan Gadgets"></label></div>'+
+  '<label>Tafseel (description)<textarea id="eDesc">'+esc(p.desc)+'</textarea></label>'+
+  '<label>Mashhoori (1–10, zyada wala pehle dikhega)<input id="ePop" type="number" min="1" max="10" value="'+esc(p.pop||5)+'"></label>'+
+  '<p class="msg bad" id="eErr" hidden></p>'+
+  '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="eOk">Theek hai</button><button class="btn ghost" id="eCancel">Cancel</button></div></div>';
+  $("#eFile").addEventListener("change",onPick);
+  $("#eOk").addEventListener("click",saveEditor);
+  $("#eCancel").addEventListener("click",()=>{editing=null;pending=null;$("#editorBox").innerHTML=""});
+  $("#editorBox").scrollIntoView({behavior:"smooth",block:"start"});$("#eName").focus();
+}
+async function onPick(e){
+  const f=e.target.files[0];if(!f)return;
+  try{
+    const bmp=await createImageBitmap(f);const max=900,s=Math.min(1,max/Math.max(bmp.width,bmp.height));
+    const c=document.createElement("canvas");c.width=Math.round(bmp.width*s);c.height=Math.round(bmp.height*s);
+    const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(bmp,0,0,c.width,c.height);
+    const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.85));
+    const bytes=new Uint8Array(await blob.arrayBuffer());
+    pending={bytes,preview:c.toDataURL("image/jpeg",.7)};
+    $("#ePh").innerHTML='<img src="'+pending.preview+'" alt="">';
+    $("#eImgMsg").textContent="✓ Tasveer tayar ("+Math.round(bytes.length/1024)+" KB). \"Theek hai\" dabane par upload hogi.";
+  }catch(err){$("#eImgMsg").textContent="Yeh tasveer khul nahi saki. Koi aur JPG/PNG try karein."}
+}
+async function saveEditor(){
+  const v=id=>$(id).value.trim(), err=$("#eErr");
+  const name=v("#eName"),price=Number(v("#ePrice")),cat=v("#eCat");
+  if(!name||!cat||!(price>0)){err.textContent="Naam, qeemat aur category zaroori hain.";err.hidden=false;return}
+  const p={id:editing.id,name,cat,price,old:Number(v("#eOld"))||0,desc:v("#eDesc"),img:editing.img||"",pop:Math.min(10,Math.max(1,Number(v("#ePop"))||5))};
+  if(editing.icon)p.icon=editing.icon;
+  const ok=$("#eOk");ok.disabled=true;
+  if(pending){
+    ok.textContent="Tasveer upload ho rahi hai…";
+    try{
+      const path="images/"+p.id+"-"+Date.now().toString(36)+".jpg";
+      await gh("/contents/"+path,{method:"PUT",body:JSON.stringify({message:"Tasveer: "+name,content:b64(pending.bytes)})});
+      p.img=path;
+    }catch(e){err.textContent="Tasveer upload nahi hui: "+errText(e);err.hidden=false;ok.disabled=false;ok.textContent="Theek hai";return}
+  }
+  const i=data.products.findIndex(x=>x.id===p.id);
+  if(i>=0)data.products[i]=p;else data.products.unshift(p);
+  editing=null;pending=null;$("#editorBox").innerHTML="";
+  renderList();renderCats();setDirty(true);
+}
+$("#plist").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.edit)openEditor(b.dataset.edit);
+  if(b.dataset.del){
+    if(!b.dataset.sure){b.dataset.sure="1";b.textContent="Pakka delete?";b.classList.remove("ghost");setTimeout(()=>{if(b.isConnected){delete b.dataset.sure;b.textContent="Delete";b.classList.add("ghost")}},3500);return}
+    data.products=data.products.filter(p=>p.id!==b.dataset.del);renderList();renderCats();setDirty(true);
+  }
+});
+
+/* ---------- banners ---------- */
+function renderBanners(){
+  $("#banners").innerHTML=data.banners.map((b,i)=>'<div class="banner" data-i="'+i+'"><div style="display:flex;justify-content:space-between;align-items:center"><b>Banner '+(i+1)+'</b><button class="btn ghost small" data-bdel="'+i+'">Hatayein</button></div><div class="row"><label>Chhota label<input data-bk="tag" value="'+esc(b.tag)+'" placeholder="Naya stock"></label><label>Category (button ke liye)<input data-bk="cat" list="catList" value="'+esc(b.cat)+'"></label></div><label>Bada heading<input data-bk="title" value="'+esc(b.title)+'"></label><label>Choti line<input data-bk="text" value="'+esc(b.text)+'"></label></div>').join("")||'<p class="help">Koi banner nahi.</p>';
+}
+$("#banners").addEventListener("input",e=>{const i=e.target.closest(".banner")?.dataset.i,k=e.target.dataset.bk;if(i==null||!k)return;data.banners[i][k]=e.target.value;setDirty(true)});
+$("#banners").addEventListener("click",e=>{const b=e.target.closest("[data-bdel]");if(!b)return;data.banners.splice(Number(b.dataset.bdel),1);renderBanners();setDirty(true)});
+$("#addB").addEventListener("click",()=>{data.banners.push({tag:"",title:"Naya banner",text:"",cat:"",img:""});renderBanners();setDirty(true)});
+
+/* ---------- save ---------- */
+$("#saveAll").addEventListener("click",async()=>{
+  if(editing){$("#editorBox").scrollIntoView({behavior:"smooth"});const e=$("#eErr");if(e){e.textContent="Pehle is product ko \"Theek hai\" ya \"Cancel\" karein.";e.hidden=false}return}
+  const btn=$("#saveAll");btn.disabled=true;btn.textContent="Save ho raha hai…";
+  try{
+    const body={message:"Store update: "+new Date().toLocaleString("en-GB"),content:enc(JSON.stringify(data,null,1))};
+    if(sha)body.sha=sha;
+    const r=await gh("/contents/store.json",{method:"PUT",body:JSON.stringify(body)});
+    sha=r.json.content.sha;setDirty(false);
+    $("#st").textContent="✓ Save ho gaya! Website 1–2 minute mein update ho jayegi.";
+  }catch(e){$("#st").textContent="Save nahi hua: "+errText(e);$("#st").classList.add("dirty")}
+  btn.disabled=false;btn.textContent="Website par save karein";
+});
+
+/* auto-login with saved token */
+const t=LS.get("eb_token");if(t)connect(t);
+}
+</script>
+</body>
+</html>
