@@ -36,6 +36,8 @@ section{padding:clamp(28px,4vw,52px) 0}
 .util{background:var(--dark);color:#ddd;font-size:14px}
 .util .wrap{display:flex;flex-wrap:wrap;gap:6px 22px;justify-content:space-between;padding-block:7px}
 .util b{color:#fff;font-weight:600}
+.util .adm{color:#fff;text-decoration:none;border:1px solid #ffffff55;border-radius:6px;padding:1px 10px;margin-left:12px;white-space:nowrap}.util .adm:hover{background:var(--red);border-color:var(--red)}
+.copy{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}.copy a{color:#cfcfd4}
 /* header */
 header.main{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
 header.main .wrap{display:flex;align-items:center;gap:16px;padding-block:12px}
@@ -165,7 +167,7 @@ input,textarea{min-height:46px;padding:10px 12px;border:1px solid var(--line);bo
 <div class="util"><div class="wrap">
   <span>🚚 <b>Cash on Delivery</b> poore Pakistan mein</span>
   <span class="hide" id="utilFree"></span>
-  <span>WhatsApp: <b id="utilWa"></b></span>
+  <span>WhatsApp: <b id="utilWa"></b><a class="adm" href="admin.html">👤 Admin</a></span>
 </div></div>
 
 <header class="main">
@@ -230,7 +232,7 @@ input,textarea{min-height:46px;padding:10px 12px;border:1px solid var(--line);bo
     <div><h4>Wapsi (Return)</h4><p>Ghalat ya toota item aaye to unboxing video ke saath 3 din ke andar WhatsApp karein.</p></div>
     <div><h4>Raabta</h4><p>WhatsApp: <span id="waText"></span></p><p>Subah 10 se raat 10 baje tak</p></div>
   </div>
-  <div class="copy" id="year"></div>
+  <div class="copy"><span id="year"></span><a href="admin.html">Admin login</a></div>
 </div></footer>
 
 <div class="shade" id="shade"></div>
