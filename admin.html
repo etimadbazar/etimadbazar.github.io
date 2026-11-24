@@ -86,14 +86,53 @@ details summary{cursor:pointer;font-weight:600;min-height:32px}
     <label>Repository<input id="repo" autocomplete="off" spellcheck="false"></label>
   </div>
   <label>Token<input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>
+  <p class="help">Ab apna Admin password banayein. Aage se har dafa sirf yehi password maanga jayega.</p>
+  <div class="row">
+    <label>Naya password (kam az kam 6 harf)<input id="np1" type="password" autocomplete="new-password"></label>
+    <label>Password dobara likhein<input id="np2" type="password" autocomplete="new-password"></label>
+  </div>
   <button class="btn" id="connect">Connect karein</button>
   <p class="msg" id="loginMsg" hidden></p>
 </section>
 
+<!-- UNLOCK -->
+<section class="panel" id="unlockPanel" hidden>
+  <h2>🔒 Admin Panel kholein</h2>
+  <form id="unlockForm" style="display:grid;gap:12px">
+    <label>Password<input id="upw" type="password" autocomplete="current-password"></label>
+    <button class="btn" type="submit" id="unlockBtn">Kholein</button>
+  </form>
+  <p class="msg" id="unlockMsg" hidden></p>
+  <button class="btn ghost small" id="forgot" style="justify-self:start">Password bhool gaye?</button>
+</section>
+
+<!-- SET PASSWORD (purane login se) -->
+<section class="panel" id="migPanel" hidden>
+  <h2>🔒 Apna Admin password banayein</h2>
+  <p class="help">Admin Panel ab password se khulega. Ek aasaan aur mehfooz password chunein.</p>
+  <div class="row">
+    <label>Naya password (kam az kam 6 harf)<input id="mp1" type="password" autocomplete="new-password"></label>
+    <label>Password dobara likhein<input id="mp2" type="password" autocomplete="new-password"></label>
+  </div>
+  <button class="btn" id="migBtn">Password banayein</button>
+  <p class="msg" id="migMsg" hidden></p>
+</section>
+
 <div id="app" hidden style="display:grid;gap:18px">
+<!-- CHANGE PASSWORD -->
+<section class="panel" id="pwPanel" hidden>
+  <h2>🔑 Password badlein</h2>
+  <label>Purana password<input id="cp0" type="password" autocomplete="current-password"></label>
+  <div class="row">
+    <label>Naya password (kam az kam 6 harf)<input id="cp1" type="password" autocomplete="new-password"></label>
+    <label>Naya password dobara<input id="cp2" type="password" autocomplete="new-password"></label>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="cpSave">Password badlein</button><button class="btn ghost" id="cpCancel">Cancel</button></div>
+  <p class="msg" id="cpMsg" hidden></p>
+</section>
 <!-- SETTINGS -->
 <section class="panel">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2><b>1</b>Store ki settings</h2><button class="btn ghost small" id="logout">Logout</button></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2><b>1</b>Store ki settings</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost small" id="pwOpen">🔑 Password badlein</button><button class="btn ghost small" id="logout">🔒 Lock karein</button></div></div>
   <div class="row">
     <label>Store ka naam<input id="sName" data-cfg="storeName"></label>
     <label>WhatsApp number (92 se shuru)<input id="sWa" data-cfg="whatsapp" inputmode="numeric" placeholder="923001234567"></label>
@@ -155,30 +194,74 @@ async function gh(path,opt={}){
 }
 const errText=e=>e.status===401?"Token ghalat hai ya expire ho gaya. Naya token banayein.":e.status===403?"Token ko is repository mein likhne ki ijazat nahi. Token mein Contents: Read and write zaroor dein (ya organization mein approve karein).":e.status===409||e.status===422?"File beech mein kisi aur jagah se badli gayi. Page refresh kar ke dobara koshish karein.":(e.message==="Failed to fetch"?"Internet ka masla. Connection check karein.":e.message);
 
+/* ---------- password lock (token browser mein password se encrypt hota hai) ---------- */
+const te=new TextEncoder();
+const u8=x=>Uint8Array.from(atob(x),c=>c.charCodeAt(0));
+async function deriveKey(pw,salt){const base=await crypto.subtle.importKey("raw",te.encode(pw),"PBKDF2",false,["deriveKey"]);return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:250000,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
+async function lockToken(token,pw){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));const key=await deriveKey(pw,salt);const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},key,te.encode(token)));LS.set("eb_lock",JSON.stringify({s:b64(salt),i:b64(iv),c:b64(ct)}));LS.del("eb_token")}
+async function unlockToken(pw){const L=JSON.parse(LS.get("eb_lock"));const key=await deriveKey(pw,u8(L.s));return new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:u8(L.i)},key,u8(L.c)))}
+const pwProblem=(p1,p2)=>p1.length<6?"Password kam az kam 6 harf ka ho.":p1!==p2?"Dono password ek jaise nahi hain.":"";
+function show(id){["loginPanel","unlockPanel","migPanel"].forEach(x=>$("#"+x).hidden=x!==id);if(id){const f=$("#"+id+" input");if(f)f.focus()}}
+
 /* ---------- login ---------- */
 function msg(el,type,text){el.className="msg "+type;el.textContent=text;el.hidden=false}
-async function connect(saved){
-  const owner=$("#owner").value.trim(),repo=$("#repo").value.trim(),token=saved||$("#token").value.trim();
-  if(!owner||!repo||!token){msg($("#loginMsg"),"bad","Owner, repository aur token teeno likhein.");return}
-  auth={owner,repo,token};$("#connect").disabled=true;msg($("#loginMsg"),"info","Connect ho raha hai…");
+async function connect(token,msgEl){
+  const owner=$("#owner").value.trim(),repo=$("#repo").value.trim();
+  auth={owner,repo,token};msg(msgEl,"info","Connect ho raha hai…");
   try{
     const repoInfo=await gh("");
     if(repoInfo.status===404)throw Object.assign(new Error("Repository nahi mili. Owner aur repository ka naam check karein, aur token mein yeh repository chunein."),{status:404});
-    if(repoInfo.json.permissions&&!repoInfo.json.permissions.push)throw Object.assign(new Error(""),{status:403});
     const f=await gh("/contents/store.json");
     if(f.status===404){data=JSON.parse(JSON.stringify(EMPTY));sha=null;
       try{const r=await fetch("store.json",{cache:"no-store"});if(r.ok)data=await r.json()}catch(e){}
     }else{sha=f.json.sha;data=JSON.parse(dec(f.json.content))}
     data.config=Object.assign({},EMPTY.config,data.config||{});data.products=Array.isArray(data.products)?data.products:[];data.banners=Array.isArray(data.banners)?data.banners:[];
-    LS.set("eb_owner",owner);LS.set("eb_repo",repo);LS.set("eb_token",token);
-    $("#loginPanel").hidden=true;$("#app").hidden=false;$("#bar").hidden=false;$("#token").value="";
-    renderAll();setDirty(sha===null);
-  }catch(e){auth=null;msg($("#loginMsg"),"bad",errText(e));if(saved)LS.del("eb_token")}
-  $("#connect").disabled=false;
+    LS.set("eb_owner",owner);LS.set("eb_repo",repo);
+    show(null);$("#app").hidden=false;$("#bar").hidden=false;$("#token").value="";
+    renderAll();setDirty(sha===null);return true;
+  }catch(e){auth=null;msg(msgEl,"bad",errText(e)+(e.status===401&&LS.get("eb_lock")?" Phir \"Password bhool gaye?\" se naya token daalein.":""));return false}
 }
-$("#connect").addEventListener("click",()=>connect());
-$("#logout").addEventListener("click",()=>{if(dirty&&!confirmInline())return;LS.del("eb_token");location.reload()});
-function confirmInline(){const b=$("#logout");if(b.dataset.sure){return true}b.dataset.sure="1";b.textContent="Changes save nahi hue. Phir bhi logout?";setTimeout(()=>{delete b.dataset.sure;b.textContent="Logout"},4000);return false}
+/* pehli dafa: token + naya password */
+$("#connect").addEventListener("click",async()=>{
+  const owner=$("#owner").value.trim(),repo=$("#repo").value.trim(),token=$("#token").value.trim(),p1=$("#np1").value,p2=$("#np2").value,m=$("#loginMsg");
+  if(!owner||!repo||!token){msg(m,"bad","Owner, repository aur token teeno likhein.");return}
+  const bad=pwProblem(p1,p2);if(bad){msg(m,"bad",bad);return}
+  $("#connect").disabled=true;
+  if(await connect(token,m)){await lockToken(token,p1);$("#np1").value=$("#np2").value=""}
+  $("#connect").disabled=false;
+});
+/* password se kholna */
+$("#unlockForm").addEventListener("submit",async e=>{
+  e.preventDefault();const m=$("#unlockMsg"),btn=$("#unlockBtn");btn.disabled=true;msg(m,"info","Check ho raha hai…");
+  let token;try{token=await unlockToken($("#upw").value)}catch(err){msg(m,"bad","Password ghalat hai.");btn.disabled=false;$("#upw").select();return}
+  $("#upw").value="";await connect(token,m);btn.disabled=false;
+});
+$("#forgot").addEventListener("click",()=>{
+  const b=$("#forgot");
+  if(!b.dataset.sure){b.dataset.sure="1";b.textContent="Haan, naya token aur naya password daalunga";setTimeout(()=>{if(b.dataset.sure){delete b.dataset.sure;b.textContent="Password bhool gaye?"}},5000);return}
+  LS.del("eb_lock");show("loginPanel");msg($("#loginMsg"),"info","Naya token banayein (ya purana Regenerate karein), yahan paste karein aur naya password chunein.");
+});
+/* purane version se: token tha magar password nahi */
+$("#migBtn").addEventListener("click",async()=>{
+  const p1=$("#mp1").value,p2=$("#mp2").value,m=$("#migMsg"),bad=pwProblem(p1,p2);if(bad){msg(m,"bad",bad);return}
+  const token=LS.get("eb_token");$("#migBtn").disabled=true;
+  if(await connect(token,m))await lockToken(token,p1);else{LS.del("eb_token");show("loginPanel")}
+  $("#migBtn").disabled=false;
+});
+/* password badlein */
+$("#pwOpen").addEventListener("click",()=>{$("#pwPanel").hidden=false;$("#cpMsg").hidden=true;$("#pwPanel").scrollIntoView({behavior:"smooth"});$("#cp0").focus()});
+$("#cpCancel").addEventListener("click",()=>{$("#pwPanel").hidden=true;["#cp0","#cp1","#cp2"].forEach(i=>$(i).value="")});
+$("#cpSave").addEventListener("click",async()=>{
+  const m=$("#cpMsg"),p1=$("#cp1").value,bad=pwProblem(p1,$("#cp2").value);
+  let cur;try{cur=await unlockToken($("#cp0").value)}catch(e){msg(m,"bad","Purana password ghalat hai.");return}
+  if(cur!==auth.token){msg(m,"bad","Purana password ghalat hai.");return}
+  if(bad){msg(m,"bad",bad);return}
+  await lockToken(auth.token,p1);["#cp0","#cp1","#cp2"].forEach(i=>$(i).value="");
+  msg(m,"ok","✓ Password badal gaya. Agli dafa naya password istemaal karein.");
+  setTimeout(()=>{$("#pwPanel").hidden=true},2500);
+});
+$("#logout").addEventListener("click",()=>{if(dirty&&!confirmInline())return;location.reload()});
+function confirmInline(){const b=$("#logout");if(b.dataset.sure){return true}b.dataset.sure="1";b.textContent="Changes save nahi hue. Phir bhi lock?";setTimeout(()=>{delete b.dataset.sure;b.textContent="🔒 Lock karein"},4000);return false}
 
 /* ---------- state ---------- */
 function setDirty(d){dirty=d;const s=$("#st");s.textContent=d?"Changes abhi save nahi hue":"Sab kuch save hai";s.classList.toggle("dirty",d)}
@@ -282,8 +365,8 @@ $("#saveAll").addEventListener("click",async()=>{
   btn.disabled=false;btn.textContent="Website par save karein";
 });
 
-/* auto-login with saved token */
-const t=LS.get("eb_token");if(t)connect(t);
+/* shuru: kaunsa panel dikhana hai */
+if(LS.get("eb_lock"))show("unlockPanel");else if(LS.get("eb_token"))show("migPanel");else show("loginPanel");
 }
 </script>
 </body>
