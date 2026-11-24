@@ -58,6 +58,27 @@ button{font:inherit;cursor:pointer}
 .bar .st.dirty{color:var(--red);font-weight:600}
 .banner{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:10px}
 details summary{cursor:pointer;font-weight:600;min-height:32px}
+.ochips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.ochip{flex:none;min-height:38px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg);font-weight:600;font-size:14px}
+.ochip[aria-pressed=true]{background:#141416;color:#fff;border-color:#141416}
+.ord{border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:6px}
+.ord.new{border-left:5px solid var(--red)}
+.oh{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.oh .t{color:var(--mute);font-size:14px;margin-left:auto}
+.st{font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px;background:var(--bg)}
+.st.s0{background:#ffe3e8;color:#8f0018}.st.s1{background:#fff0dc;color:#7a4a00}.st.s2{background:#e3ecff;color:#173f9c}.st.s3{background:#e2f6ea;color:#0f5a2f}.st.s4{background:#ececf0;color:#55555e}
+.ord pre{margin:0;font:inherit;font-size:15px;white-space:pre-wrap;background:var(--bg);border-radius:8px;padding:8px 10px}
+.ord .sub{color:var(--mute);font-size:14px}
+.oacts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px}
+.oacts a{text-decoration:none;display:inline-flex;align-items:center}
+.oacts select{width:auto;min-height:40px;padding:0 10px}
+.btn.wa2{background:#1f9d55}
+.steps{display:grid;gap:14px;counter-reset:s}
+.step{border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:10px}
+.step h3{font-size:17px}
+.step ol{margin:0;padding-left:20px;display:grid;gap:4px;color:var(--mute);font-size:15px}
+.step a{color:var(--red)}
+code{background:var(--bg);padding:1px 6px;border-radius:4px;font-size:14px}
 @media(max-width:600px){.row,.row3{grid-template-columns:1fr}.prow{grid-template-columns:56px minmax(0,1fr)}.prow .acts{grid-column:1/-1;justify-content:stretch}.prow .acts .btn{flex:1}.ph{width:56px;height:56px}.imgpick{grid-template-columns:90px minmax(0,1fr)}.imgpick .ph{width:90px;height:90px}}
 </style>
 </head>
@@ -130,6 +151,53 @@ details summary{cursor:pointer;font-weight:600;min-height:32px}
   <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="cpSave">Password badlein</button><button class="btn ghost" id="cpCancel">Cancel</button></div>
   <p class="msg" id="cpMsg" hidden></p>
 </section>
+<!-- ORDERS -->
+<section class="panel" id="ordersPanel">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2>🛒 Orders <span class="help" id="oCount"></span></h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn dark small" id="oRefresh">↻ Refresh</button><button class="btn ghost small" id="oSetupOpen">⚙️ Orders setup</button></div></div>
+  <div id="oBody" style="display:grid;gap:10px"></div>
+</section>
+
+<!-- ORDERS SETUP -->
+<section class="panel" id="setupPanel" hidden>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2>⚙️ Orders system setup</h2><button class="btn ghost small" id="setupClose">Band karein</button></div>
+  <p class="help">Orders aap ke apne Google Sheet mein jama honge (free), aur har order par aap ko WhatsApp aur email aayegi. Yeh setup sirf ek dafa karna hai, taqreeban 10 minute.</p>
+  <div class="steps">
+    <div class="step"><h3>Qadam 1: WhatsApp alert ki chaabi (CallMeBot)</h3>
+      <ol>
+        <li>CallMeBot ka WhatsApp number phone mein save karein. Number in ki official site se lein: <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" rel="noopener">callmebot.com</a> (us waqt yeh +34 684 783 708 tha).</li>
+        <li>Us number par <b>apne usi WhatsApp se</b> jis par orders chahiye, yeh message bhejein: <code>I allow callmebot to send me messages</code></li>
+        <li>2 minute mein jawab aayega: "Your APIKEY is 123456". Woh number neeche likhein.</li>
+      </ol>
+      <div class="row"><label>CallMeBot APIKEY<input id="cmbKey" inputmode="numeric" autocomplete="off" placeholder="123456"></label><label>Orders is WhatsApp par aayenge<input id="cmbPhone" disabled></label></div>
+      <p class="help">Store ki settings mein WhatsApp number sahi hona chahiye, warna pehle woh badal kar save karein. CallMeBot sirf aap ko (apne number par) message bhejta hai, customer ko nahi.</p>
+    </div>
+    <div class="step"><h3>Qadam 2: Google Sheet aur code</h3>
+      <ol>
+        <li>Is link se naya Google Sheet banayein: <a href="https://sheets.new" target="_blank" rel="noopener">sheets.new</a>. Upar naam rakhein: <i>Etimad Bazar Orders</i>.</li>
+        <li>Menu mein <b>Extensions → Apps Script</b>.</li>
+        <li>Wahan jo code likha hai sab mita dein, phir neeche wala button daba kar code copy karein aur wahan paste karein. 💾 <b>Save</b> dabayein.</li>
+        <li>Upar function list mein <b>setup</b> chun kar <b>▶ Run</b> dabayein. Google ijazat maangega: <b>Review permissions</b> → apna account → <b>Advanced</b> → <b>Go to … (unsafe)</b> → <b>Allow</b>. (Yeh aap ka apna code hai, is liye Google aisa likhta hai.)</li>
+      </ol>
+      <button class="btn dark" id="copyCode" style="justify-self:start">📋 Code copy karein</button>
+      <details><summary>Copy na ho to code yahan se select karein</summary><textarea id="codeBox" readonly style="min-height:200px;font-family:monospace;font-size:13px"></textarea></details>
+    </div>
+    <div class="step"><h3>Qadam 3: Web app banayein</h3>
+      <ol>
+        <li>Apps Script mein upar daayen <b>Deploy → New deployment</b>.</li>
+        <li>⚙️ (Select type) → <b>Web app</b>.</li>
+        <li><b>Execute as:</b> Me &nbsp;·&nbsp; <b>Who has access:</b> Anyone</li>
+        <li><b>Deploy</b> dabayein aur jo <b>Web app URL</b> mile (https://script.google.com/macros/s/…/exec) usay copy karein.</li>
+      </ol>
+    </div>
+    <div class="step"><h3>Qadam 4: Yahan jod dein</h3>
+      <label>Web app URL<input id="oUrl" placeholder="https://script.google.com/macros/s/…/exec" spellcheck="false" autocomplete="off"></label>
+      <label>Admin key (code mein <code>ADMIN_KEY</code>; khud bhar di gayi hai)<input id="oKey" spellcheck="false" autocomplete="off"></label>
+      <button class="btn" id="oConnect" style="justify-self:start">Connect aur test karein</button>
+      <p class="msg" id="oMsg" hidden></p>
+      <p class="help">Baad mein code badlein (maslan nayi CallMeBot key), to Apps Script mein <b>Deploy → Manage deployments → ✏️ → Version: New version → Deploy</b> karein. URL wahi rahega.</p>
+    </div>
+  </div>
+</section>
 <!-- SETTINGS -->
 <section class="panel">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2><b>1</b>Store ki settings</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost small" id="pwOpen">🔑 Password badlein</button><button class="btn ghost small" id="logout">🔒 Lock karein</button></div></div>
@@ -161,6 +229,146 @@ details summary{cursor:pointer;font-weight:600;min-height:32px}
 </section>
 </div>
 <datalist id="catList"></datalist>
+<script type="text/plain" id="gsTpl">/* ============================================================
+   ETIMAD BAZAR — ORDERS SYSTEM (Google Apps Script)
+   Yeh code aap ke Google Sheet ke saath chalta hai:
+   - website se aane wale orders Sheet mein likhta hai
+   - aap ko WhatsApp (CallMeBot) aur email par khabar deta hai
+   - Admin Panel ko orders dikhata hai
+   Neeche ki SETTINGS Admin Panel khud bhar deta hai.
+   ============================================================ */
+
+// ====== SETTINGS ======
+const ADMIN_KEY        = "__ADMIN_KEY__";      // Admin Panel ki khufia chaabi (kisi ko na dein)
+const OWNER_WHATSAPP   = "__PHONE__";          // aap ka WhatsApp number, 92 se shuru
+const CALLMEBOT_APIKEY = "__APIKEY__";         // CallMeBot se mili apikey (khaali ho to WhatsApp nahi jayega)
+const STORE_JSON_URL   = "__STORE_URL__";      // aap ki website ki store.json
+const SEND_EMAIL       = true;                 // har order par aap ko email bhi aaye
+// ======================
+
+const HEAD = ["Waqt", "Order #", "Status", "Naam", "Mobile", "Shehar", "Pata", "Note", "Items", "Products (Rs)", "Delivery (Rs)", "Kul (Rs)"];
+const STATUSES = ["Naya", "Confirm", "Bhej diya", "Mukammal", "Cancel"];
+
+function doGet() {
+  return out_({ ok: true, msg: "Etimad Bazar orders system chal raha hai" });
+}
+
+function doPost(e) {
+  let b;
+  try { b = JSON.parse(e.postData.contents); } catch (err) { return out_({ ok: false, error: "bad" }); }
+  if (b.action === "order") return order_(b);
+  if (b.key !== ADMIN_KEY) return out_({ ok: false, error: "key" });
+  if (b.action === "ping") return out_({ ok: true });
+  if (b.action === "test") { const r = notify_("✅ Test: Etimad Bazar orders system theek chal raha hai.", "TEST"); return out_({ ok: true, whatsapp: r.whatsapp, email: r.email }); }
+  if (b.action === "list") return list_();
+  if (b.action === "status") return status_(String(b.id || ""), String(b.status || ""));
+  return out_({ ok: false, error: "action" });
+}
+
+/* ---------- naya order ---------- */
+function order_(b) {
+  const c = b.customer || {};
+  const name = clean_(c.name, 80), city = clean_(c.city, 60), addr = clean_(c.address, 300), note = clean_(c.note, 200);
+  const phone = String(c.phone || "").replace(/[^\d+]/g, "").slice(0, 16);
+  if (!name || !city || !addr || phone.replace(/\D/g, "").length < 10) return out_({ ok: false, error: "fields" });
+
+  // spam se bachao: ek number se ghante mein 5 se zyada order nahi
+  const cache = CacheService.getScriptCache(), rk = "r" + phone.replace(/\D/g, ""), n = Number(cache.get(rk) || 0);
+  if (n >= 5) return out_({ ok: false, error: "limit" });
+  cache.put(rk, String(n + 1), 3600);
+
+  // qeemat website ki store.json se dobara hisaab hoti hai (koi qeemat badal na sake)
+  const st = store_(), cfg = st.config || {}, prods = {};
+  (st.products || []).forEach(function (p) { prods[p.id] = p; });
+  let sub = 0; const lines = [];
+  (Array.isArray(b.items) ? b.items : []).slice(0, 50).forEach(function (it) {
+    const p = prods[it.id], q = Math.min(99, Math.max(0, Math.floor(Number(it.qty) || 0)));
+    if (!p || !q) return;
+    const amt = Number(p.price) * q; sub += amt;
+    lines.push(clean_(p.name, 120) + " × " + q + " = Rs " + amt);
+  });
+  if (!lines.length) return out_({ ok: false, error: "items" });
+  const fee = Number(cfg.deliveryFee) || 0, free = Number(cfg.freeDeliveryOver) || 0;
+  const del = (free && sub >= free) ? 0 : fee, total = sub + del;
+
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  let id;
+  try {
+    id = "EB-" + Utilities.formatDate(new Date(), "Asia/Karachi", "MMdd") + "-" + Math.floor(1000 + Math.random() * 9000);
+    sheet_().appendRow([new Date(), id, "Naya", name, "'" + phone, city, addr, note, lines.join("\n"), sub, del, total]);
+  } finally { lock.releaseLock(); }
+
+  notify_("🛒 NAYA ORDER " + id + "\n\n" + lines.join("\n") + "\n\nDelivery: Rs " + del + "\nKUL: Rs " + total + " (COD)\n\n👤 " + name + "\n📞 " + phone + "\n🏙️ " + city + "\n📍 " + addr + (note ? "\n📝 " + note : ""), id);
+  return out_({ ok: true, id: id, total: total });
+}
+
+/* ---------- admin: orders list ---------- */
+function list_() {
+  const sh = sheet_(), last = sh.getLastRow();
+  if (last < 2) return out_({ ok: true, orders: [] });
+  const start = Math.max(2, last - 499);
+  const rows = sh.getRange(start, 1, last - start + 1, HEAD.length).getValues();
+  const orders = rows.map(function (r) {
+    return { time: r[0] instanceof Date ? r[0].toISOString() : String(r[0]), id: r[1], status: r[2], name: r[3], phone: String(r[4]), city: r[5], address: r[6], note: r[7], items: r[8], sub: r[9], del: r[10], total: r[11] };
+  }).reverse();
+  return out_({ ok: true, orders: orders });
+}
+
+/* ---------- admin: status badlein ---------- */
+function status_(id, status) {
+  if (STATUSES.indexOf(status) < 0) return out_({ ok: false, error: "status" });
+  const sh = sheet_(), last = sh.getLastRow();
+  if (last < 2) return out_({ ok: false, error: "notfound" });
+  const ids = sh.getRange(2, 2, last - 1, 1).getValues();
+  for (let i = ids.length - 1; i >= 0; i--) {
+    if (String(ids[i][0]) === id) { sh.getRange(i + 2, 3).setValue(status); return out_({ ok: true }); }
+  }
+  return out_({ ok: false, error: "notfound" });
+}
+
+/* ---------- khabar: WhatsApp + email ---------- */
+function notify_(msg, id) {
+  const res = { whatsapp: false, email: false };
+  if (CALLMEBOT_APIKEY && CALLMEBOT_APIKEY.indexOf("__") !== 0) {
+    try {
+      const r = UrlFetchApp.fetch("https://api.callmebot.com/whatsapp.php?phone=" + encodeURIComponent("+" + OWNER_WHATSAPP.replace(/\D/g, "")) +
+        "&text=" + encodeURIComponent(msg) + "&apikey=" + encodeURIComponent(CALLMEBOT_APIKEY), { muteHttpExceptions: true });
+      res.whatsapp = r.getResponseCode() === 200;
+    } catch (e) {}
+  }
+  if (SEND_EMAIL) {
+    try { MailApp.sendEmail(Session.getEffectiveUser().getEmail(), "Etimad Bazar: " + (id === "TEST" ? "Test" : "Naya order " + id), msg); res.email = true; } catch (e) {}
+  }
+  return res;
+}
+
+/* ---------- madadgar ---------- */
+function sheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName("Orders");
+  if (!sh) { sh = ss.insertSheet("Orders"); sh.appendRow(HEAD); sh.setFrozenRows(1); sh.getRange(1, 1, 1, HEAD.length).setFontWeight("bold"); }
+  return sh;
+}
+function store_() {
+  const cache = CacheService.getScriptCache();
+  let s = cache.get("store");
+  if (!s) { s = UrlFetchApp.fetch(STORE_JSON_URL + "?t=" + Date.now()).getContentText(); try { cache.put("store", s, 300); } catch (e) {} }
+  return JSON.parse(s);
+}
+function clean_(v, max) {
+  v = String(v == null ? "" : v).replace(/[\u0000-\u0008\u000b-\u001f]/g, " ").trim().slice(0, max);
+  return /^[=+\-@]/.test(v) ? "'" + v : v;   // Sheet mein formula na ban jaye
+}
+function out_(o) {
+  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* Pehli dafa ijazat (Authorize) dene ke liye isay ek dafa "Run" karein */
+function setup() {
+  sheet_();
+  notify_("✅ Etimad Bazar orders system tayar hai.", "TEST");
+}
+</script>
 </main>
 
 <div class="bar" id="bar" hidden><div class="in">
@@ -200,6 +408,9 @@ const u8=x=>Uint8Array.from(atob(x),c=>c.charCodeAt(0));
 async function deriveKey(pw,salt){const base=await crypto.subtle.importKey("raw",te.encode(pw),"PBKDF2",false,["deriveKey"]);return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:250000,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
 async function lockToken(token,pw){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));const key=await deriveKey(pw,salt);const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},key,te.encode(token)));LS.set("eb_lock",JSON.stringify({s:b64(salt),i:b64(iv),c:b64(ct)}));LS.del("eb_token")}
 async function unlockToken(pw){const L=JSON.parse(LS.get("eb_lock"));const key=await deriveKey(pw,u8(L.s));return new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:u8(L.i)},key,u8(L.c)))}
+const parseLock=x=>{try{const o=JSON.parse(x);if(o&&o.t)return o}catch(e){}return{t:x,k:""}};
+async function saveLock(){await lockToken(JSON.stringify({t:auth.token,k:auth.okey||""}),PW)}
+let PW=null;
 const pwProblem=(p1,p2)=>p1.length<6?"Password kam az kam 6 harf ka ho.":p1!==p2?"Dono password ek jaise nahi hain.":"";
 function show(id){["loginPanel","unlockPanel","migPanel"].forEach(x=>$("#"+x).hidden=x!==id);if(id){const f=$("#"+id+" input");if(f)f.focus()}}
 
@@ -227,14 +438,14 @@ $("#connect").addEventListener("click",async()=>{
   if(!owner||!repo||!token){msg(m,"bad","Owner, repository aur token teeno likhein.");return}
   const bad=pwProblem(p1,p2);if(bad){msg(m,"bad",bad);return}
   $("#connect").disabled=true;
-  if(await connect(token,m)){await lockToken(token,p1);$("#np1").value=$("#np2").value=""}
+  if(await connect(token,m)){PW=p1;auth.okey="";await saveLock();$("#np1").value=$("#np2").value="";renderOrders()}
   $("#connect").disabled=false;
 });
 /* password se kholna */
 $("#unlockForm").addEventListener("submit",async e=>{
   e.preventDefault();const m=$("#unlockMsg"),btn=$("#unlockBtn");btn.disabled=true;msg(m,"info","Check ho raha hai…");
-  let token;try{token=await unlockToken($("#upw").value)}catch(err){msg(m,"bad","Password ghalat hai.");btn.disabled=false;$("#upw").select();return}
-  $("#upw").value="";await connect(token,m);btn.disabled=false;
+  const pw=$("#upw").value;let L;try{L=parseLock(await unlockToken(pw))}catch(err){msg(m,"bad","Password ghalat hai.");btn.disabled=false;$("#upw").select();return}
+  $("#upw").value="";if(await connect(L.t,m)){PW=pw;auth.okey=L.k||"";renderOrders();loadOrders()}btn.disabled=false;
 });
 $("#forgot").addEventListener("click",()=>{
   const b=$("#forgot");
@@ -245,7 +456,7 @@ $("#forgot").addEventListener("click",()=>{
 $("#migBtn").addEventListener("click",async()=>{
   const p1=$("#mp1").value,p2=$("#mp2").value,m=$("#migMsg"),bad=pwProblem(p1,p2);if(bad){msg(m,"bad",bad);return}
   const token=LS.get("eb_token");$("#migBtn").disabled=true;
-  if(await connect(token,m))await lockToken(token,p1);else{LS.del("eb_token");show("loginPanel")}
+  if(await connect(token,m)){PW=p1;auth.okey="";await saveLock();renderOrders()}else{LS.del("eb_token");show("loginPanel")}
   $("#migBtn").disabled=false;
 });
 /* password badlein */
@@ -253,20 +464,107 @@ $("#pwOpen").addEventListener("click",()=>{$("#pwPanel").hidden=false;$("#cpMsg"
 $("#cpCancel").addEventListener("click",()=>{$("#pwPanel").hidden=true;["#cp0","#cp1","#cp2"].forEach(i=>$(i).value="")});
 $("#cpSave").addEventListener("click",async()=>{
   const m=$("#cpMsg"),p1=$("#cp1").value,bad=pwProblem(p1,$("#cp2").value);
-  let cur;try{cur=await unlockToken($("#cp0").value)}catch(e){msg(m,"bad","Purana password ghalat hai.");return}
-  if(cur!==auth.token){msg(m,"bad","Purana password ghalat hai.");return}
+  let cur;try{cur=parseLock(await unlockToken($("#cp0").value))}catch(e){msg(m,"bad","Purana password ghalat hai.");return}
+  if(cur.t!==auth.token){msg(m,"bad","Purana password ghalat hai.");return}
   if(bad){msg(m,"bad",bad);return}
-  await lockToken(auth.token,p1);["#cp0","#cp1","#cp2"].forEach(i=>$(i).value="");
+  PW=p1;await saveLock();["#cp0","#cp1","#cp2"].forEach(i=>$(i).value="");
   msg(m,"ok","✓ Password badal gaya. Agli dafa naya password istemaal karein.");
   setTimeout(()=>{$("#pwPanel").hidden=true},2500);
 });
 $("#logout").addEventListener("click",()=>{if(dirty&&!confirmInline())return;location.reload()});
 function confirmInline(){const b=$("#logout");if(b.dataset.sure){return true}b.dataset.sure="1";b.textContent="Changes save nahi hue. Phir bhi lock?";setTimeout(()=>{delete b.dataset.sure;b.textContent="🔒 Lock karein"},4000);return false}
 
+/* ---------- orders ---------- */
+const STATUSES=["Naya","Confirm","Bhej diya","Mukammal","Cancel"];
+let orders=null,oFilter="Naya",oTimer=null,oLoading=false;
+const ordersReady=()=>!!(data&&data.config.ordersUrl&&auth&&auth.okey);
+async function ordersCall(body,url){
+  const r=await fetch(url||data.config.ordersUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)});
+  return r.json();
+}
+const waNum=p=>{let d=String(p||"").replace(/\D/g,"");if(d.startsWith("0"))d="92"+d.slice(1);else if(d.length===10&&d.startsWith("3"))d="92"+d;return d};
+function renderOrders(){
+  const box=$("#oBody");
+  if(!data)return;
+  if(!data.config.ordersUrl||!auth.okey){
+    box.innerHTML='<p class="help">'+(data.config.ordersUrl?"Is device par orders ki chaabi (admin key) nahi hai. <b>Orders setup</b> kholein, Qadam 4 mein apni Apps Script ki ADMIN_KEY daal kar Connect karein.":"Orders system abhi set nahi hua. Abhi customer ka order sirf WhatsApp message se aata hai. Orders ko yahan dekhne aur har order par khud WhatsApp alert ke liye <b>Orders setup</b> karein.")+'</p><button class="btn" id="oStart" style="justify-self:start">Orders setup shuru karein</button>';
+    $("#oStart").addEventListener("click",openSetup);$("#oCount").textContent="";return;
+  }
+  if(!orders){box.innerHTML='<p class="help">Orders load ho rahe hain…</p>';return}
+  const cnt={};orders.forEach(o=>cnt[o.status]=(cnt[o.status]||0)+1);
+  $("#oCount").textContent="("+orders.length+")";
+  const nNew=cnt["Naya"]||0;document.title=(nNew?"("+nNew+") ":"")+"Store Admin Panel";
+  const list=orders.filter(o=>oFilter==="Sab"||o.status===oFilter);
+  box.innerHTML='<div class="ochips">'+["Naya","Confirm","Bhej diya","Mukammal","Cancel","Sab"].map(s=>'<button class="ochip" data-of="'+s+'" aria-pressed="'+(s===oFilter)+'">'+s+' '+(s==="Sab"?orders.length:(cnt[s]||0))+'</button>').join("")+'</div>'+
+  (list.length?list.map(o=>{
+    const si=Math.max(0,STATUSES.indexOf(o.status)),d=new Date(o.time),w=waNum(o.phone);
+    const waMsg="Assalam o Alaikum "+o.name+"! "+(data.config.storeName||"")+" se aap ka order "+o.id+" (Kul Rs "+Number(o.total).toLocaleString("en-PK")+", Cash on Delivery) confirm karne ke liye raabta kar rahe hain. Kya hum order bhej dein?";
+    return '<div class="ord'+(o.status==="Naya"?" new":"")+'"><div class="oh"><b>'+esc(o.id)+'</b><span class="st s'+si+'">'+esc(o.status)+'</span><span class="t">'+(isNaN(d)?"":esc(d.toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})))+'</span></div>'+
+    '<div><b>'+esc(o.name)+'</b> · '+esc(o.phone)+'</div><div class="sub">📍 '+esc(o.city)+' — '+esc(o.address)+'</div>'+(o.note?'<div class="sub">📝 '+esc(o.note)+'</div>':'')+
+    '<pre>'+esc(o.items)+'</pre><div>Delivery: Rs '+esc(Number(o.del).toLocaleString("en-PK"))+' · <b>Kul: Rs '+esc(Number(o.total).toLocaleString("en-PK"))+'</b></div>'+
+    '<div class="oacts"><a class="btn small dark" href="tel:+'+esc(w)+'">📞 Call</a><a class="btn small wa2" href="https://wa.me/'+esc(w)+'?text='+encodeURIComponent(waMsg)+'" target="_blank" rel="noopener">WhatsApp</a><label style="display:flex;gap:6px;align-items:center;font-weight:500">Status<select data-oid="'+esc(o.id)+'">'+STATUSES.map(s=>'<option'+(s===o.status?" selected":"")+'>'+s+'</option>').join("")+'</select></label></div></div>';
+  }).join(""):'<p class="help">Is list mein koi order nahi.</p>');
+}
+async function loadOrders(quiet){
+  if(!ordersReady()||oLoading)return;oLoading=true;
+  if(!quiet){$("#oRefresh").disabled=true;$("#oRefresh").textContent="Load ho raha hai…"}
+  try{const j=await ordersCall({action:"list",key:auth.okey});if(!j.ok)throw new Error(j.error==="key"?"Admin key ghalat hai. Orders setup mein sahi key daalein.":"Orders nahi mile.");orders=j.orders;renderOrders()}
+  catch(e){if(!quiet)$("#oBody").innerHTML='<p class="msg bad"></p>',$("#oBody .msg").textContent=e.message==="Failed to fetch"?"Orders system tak raabta nahi ho saka. Internet ya Web app URL check karein.":e.message}
+  oLoading=false;$("#oRefresh").disabled=false;$("#oRefresh").textContent="↻ Refresh";
+  clearTimeout(oTimer);oTimer=setTimeout(()=>{if(!document.hidden)loadOrders(true);else oTimer=setTimeout(()=>loadOrders(true),60000)},60000);
+}
+$("#oRefresh").addEventListener("click",()=>{if(ordersReady())loadOrders();else openSetup()});
+$("#oBody").addEventListener("click",e=>{const b=e.target.closest("[data-of]");if(b){oFilter=b.dataset.of;renderOrders()}});
+$("#oBody").addEventListener("change",async e=>{
+  const sel=e.target.closest("select[data-oid]");if(!sel)return;
+  const id=sel.dataset.oid,st=sel.value,o=orders.find(x=>x.id===id),old=o.status;sel.disabled=true;
+  try{const j=await ordersCall({action:"status",key:auth.okey,id,status:st});if(!j.ok)throw 0;o.status=st;renderOrders()}
+  catch(err){sel.value=old;sel.disabled=false;alertInline(sel,"Status save nahi hua")}
+});
+function alertInline(el,t){const p=document.createElement("span");p.className="help";p.style.color="var(--red)";p.textContent=" "+t;el.after(p);setTimeout(()=>p.remove(),3000)}
+
+/* setup */
+function randKey(){const a=crypto.getRandomValues(new Uint8Array(18));return Array.from(a,b=>b.toString(16).padStart(2,"0")).join("")}
+function storeUrl(){return /github\.io$/i.test(location.hostname)?location.origin+location.pathname.replace(/[^/]*$/,"")+"store.json":"https://"+auth.repo+"/store.json"}
+function fillCode(){
+  const key=$("#oKey").value.trim()||auth.okey;
+  const code=$("#gsTpl").textContent.trim()
+    .replace("__ADMIN_KEY__",key).replace("__PHONE__",String(data.config.whatsapp||"").replace(/\D/g,""))
+    .replace("__APIKEY__",$("#cmbKey").value.replace(/[^\w-]/g,"")).replace("__STORE_URL__",storeUrl());
+  $("#codeBox").value=code;return code;
+}
+async function openSetup(){
+  if(!auth.okey){auth.okey=randKey();await saveLock()}
+  $("#oKey").value=auth.okey;$("#oUrl").value=data.config.ordersUrl||"";
+  $("#cmbPhone").value="+"+String(data.config.whatsapp||"").replace(/\D/g,"");
+  fillCode();$("#setupPanel").hidden=false;$("#setupPanel").scrollIntoView({behavior:"smooth"});
+}
+$("#oSetupOpen").addEventListener("click",openSetup);
+$("#setupClose").addEventListener("click",()=>{$("#setupPanel").hidden=true});
+$("#cmbKey").addEventListener("input",fillCode);$("#oKey").addEventListener("input",fillCode);
+$("#copyCode").addEventListener("click",()=>{const c=fillCode(),b=$("#copyCode");
+  navigator.clipboard.writeText(c).then(()=>{b.textContent="✓ Code copy ho gaya";setTimeout(()=>b.textContent="📋 Code copy karein",2500)},()=>{const d=$("#codeBox").closest("details");d.open=true;$("#codeBox").select();b.textContent="Neeche se select kar ke copy karein"})});
+$("#oConnect").addEventListener("click",async()=>{
+  const url=$("#oUrl").value.trim(),key=$("#oKey").value.trim(),m=$("#oMsg"),btn=$("#oConnect");
+  if(!/^https:\/\/script\.google(usercontent)?\.com\/.+/.test(url)){msg(m,"bad","Web app URL https://script.google.com/macros/s/…/exec jaisa hona chahiye.");return}
+  if(key.length<16){msg(m,"bad","Admin key adhoori hai.");return}
+  btn.disabled=true;msg(m,"info","Check ho raha hai…");
+  try{
+    const p=await ordersCall({action:"ping",key},url);
+    if(!p.ok)throw new Error(p.error==="key"?"Admin key Apps Script ke code se match nahi karti. Code dobara copy kar ke paste karein aur New version deploy karein.":"Jawab ghalat aaya.");
+    const t=await ordersCall({action:"test",key},url);
+    auth.okey=key;await saveLock();
+    data.config.ordersUrl=url;setDirty(true);
+    msg(m,"ok","✓ Connect ho gaya! Test message: WhatsApp "+(t.whatsapp?"✓ gaya":"✗ nahi gaya (CallMeBot key check karein)")+", Email "+(t.email?"✓ gayi":"✗")+". Ab neeche laal button \"Website par save karein\" zaroor dabayein.");
+    orders=null;renderOrders();loadOrders();
+  }catch(e){msg(m,"bad",e.message==="Failed to fetch"?"URL tak raabta nahi ho saka. Check karein ke Deploy mein \"Who has access: Anyone\" chuna tha aur URL poora copy hua.":e.message)}
+  btn.disabled=false;
+});
+
 /* ---------- state ---------- */
 function setDirty(d){dirty=d;const s=$("#st");s.textContent=d?"Changes abhi save nahi hue":"Sab kuch save hai";s.classList.toggle("dirty",d)}
 window.addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.returnValue=""}});
-function renderAll(){renderCfg();renderList();renderBanners();renderCats()}
+function renderAll(){renderCfg();renderList();renderBanners();renderCats();renderOrders()}
 function renderCats(){$("#catList").innerHTML=[...new Set(data.products.map(p=>p.cat).filter(Boolean))].map(c=>'<option value="'+esc(c)+'">').join("")}
 
 /* ---------- settings ---------- */

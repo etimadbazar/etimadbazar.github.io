@@ -364,8 +364,8 @@ function renderCart(){
   const lines=Object.keys(cart).map(id=>{const p=byId(id);return '<div class="line"><div class="mini">'+pic(p)+'</div><div><div style="font-weight:600">'+esc(p.name)+'</div><div style="color:var(--mute);font-size:14px">'+money(p.price)+' × '+cart[id]+'</div></div><div class="qty"><button data-dec="'+esc(id)+'" aria-label="Kam karein">−</button><span style="width:22px;text-align:center">'+cart[id]+'</span><button data-inc="'+esc(id)+'" aria-label="Zyada karein">+</button></div></div>'}).join("");
   const f=saved();
   $("#dbody").innerHTML=lines+'<div class="sum"><span>Products</span><span>'+money(t.sub)+'</span><span>Delivery</span><span>'+(t.del?money(t.del):"Free")+'</span><span class="t">Kul raqam</span><span class="t">'+money(t.total)+'</span></div>'+
-  '<p class="sample" style="margin:0 0 10px">Paise parcel milne par dene hain (Cash on Delivery).</p>'+
-  '<form id="of" novalidate><label>Poora naam<input id="fn" autocomplete="name" value="'+esc(f.fn)+'"></label><label>Mobile number<input id="fp" type="tel" inputmode="tel" placeholder="03XX XXXXXXX" autocomplete="tel" value="'+esc(f.fp)+'"></label><label>Shehar<input id="fc" autocomplete="address-level2" value="'+esc(f.fc)+'"></label><label>Mukammal pata<textarea id="fa" rows="2" autocomplete="street-address">'+esc(f.fa)+'</textarea></label><label>Koi note (optional)<input id="fx" placeholder="Rang, size waghaira"></label><p class="err" id="err"></p><button class="wa" type="submit">Order tayar karein</button></form><div id="sendBox" style="display:grid;gap:10px;margin-top:10px"></div>';
+  '<p class="sample" style="margin:0 0 10px">Paise parcel milne par dene hain (Cash on Delivery). Aap ki maloomat sirf order bhejne ke liye istemaal hogi.</p>'+
+  '<form id="of" novalidate><label>Poora naam<input id="fn" autocomplete="name" value="'+esc(f.fn)+'"></label><label>Mobile number<input id="fp" type="tel" inputmode="tel" placeholder="03XX XXXXXXX" autocomplete="tel" value="'+esc(f.fp)+'"></label><label>Shehar<input id="fc" autocomplete="address-level2" value="'+esc(f.fc)+'"></label><label>Mukammal pata<textarea id="fa" rows="2" autocomplete="street-address">'+esc(f.fa)+'</textarea></label><label>Koi note (optional)<input id="fx" placeholder="Rang, size waghaira"></label><p class="err" id="err"></p><button class="wa" type="submit">'+(CONFIG.ordersUrl?"Order confirm karein":"Order tayar karein")+'</button></form><div id="sendBox" style="display:grid;gap:10px;margin-top:10px"></div>';
 }
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove("on"),1600)}
 function add(id){cart[id]=(cart[id]||0)+1;save();renderCart();toast("Cart mein daal diya")}
@@ -374,7 +374,9 @@ function closeAll(){$("#drawer").classList.remove("on");$("#drawer").setAttribut
 function view(id){const p=byId(id);$("#modal").innerHTML='<div class="mgrid"><div class="thumb">'+pic(p)+'</div><div class="minfo"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="ccat">'+esc(p.cat)+'</span><button class="x" data-close aria-label="Band karein">×</button></div><h2>'+esc(p.name)+'</h2><div class="price" style="font-size:24px">'+money(p.price)+(off(p)?'<span class="old">'+money(p.old)+'</span>':'')+'</div><p style="margin:0;white-space:pre-line">'+esc(p.desc)+'</p><p class="sample" style="margin:0">Cash on Delivery · 3–5 din delivery</p><button class="add" data-add="'+esc(p.id)+'" data-then="cart">Cart mein daalein</button></div></div>';$("#modal").classList.add("on");$("#shade").classList.add("on")}
 function pick(c){cat=c;renderCats();renderGrid();$("#shop").scrollIntoView({behavior:reduce?"auto":"smooth"})}
 
-function buildOrder(){
+let sending=false;
+async function buildOrder(){
+  if(sending)return;
   const v=k=>$(k).value.trim(), f={fn:v("#fn"),fp:v("#fp"),fc:v("#fc"),fa:v("#fa"),fx:v("#fx")};
   if(!f.fn||!f.fc||!f.fa){$("#err").textContent="Naam, shehar aur pata zaroor likhein.";return}
   if(f.fp.replace(/\D/g,"").length<10){$("#err").textContent="Sahi mobile number likhein.";return}
@@ -382,10 +384,29 @@ function buildOrder(){
   try{localStorage.setItem("eb_buyer",JSON.stringify({fn:f.fn,fp:f.fp,fc:f.fc,fa:f.fa}))}catch(e){}
   const t=totals();
   const items=Object.keys(cart).map((id,i)=>{const p=byId(id);return (i+1)+". "+p.name+" × "+cart[id]+" = "+money(p.price*cart[id])}).join("\n");
-  const msg="Assalam o Alaikum "+CONFIG.storeName+"! Mujhe yeh order karna hai:\n\n"+items+"\n\nProducts: "+money(t.sub)+"\nDelivery: "+(t.del?money(t.del):"Free")+"\nKul: "+money(t.total)+" (Cash on Delivery)\n\nNaam: "+f.fn+"\nMobile: "+f.fp+"\nShehar: "+f.fc+"\nPata: "+f.fa+(f.fx?"\nNote: "+f.fx:"");
-  const url="https://wa.me/"+wa+"?text="+encodeURIComponent(msg);
+  const custTxt="\n\nNaam: "+f.fn+"\nMobile: "+f.fp+"\nShehar: "+f.fc+"\nPata: "+f.fa+(f.fx?"\nNote: "+f.fx:"");
+  const msg="Assalam o Alaikum "+CONFIG.storeName+"! Mujhe yeh order karna hai:\n\n"+items+"\n\nProducts: "+money(t.sub)+"\nDelivery: "+(t.del?money(t.del):"Free")+"\nKul: "+money(t.total)+" (Cash on Delivery)"+custTxt;
   const box=$("#sendBox");box.innerHTML="";
-  const a=document.createElement("a");a.className="wa go";a.href=url;a.target="_blank";a.rel="noopener";a.textContent="WhatsApp par order bhejein ✓";
+  const waBtn=(text,m)=>{const a=document.createElement("a");a.className="wa go";a.href="https://wa.me/"+wa+"?text="+encodeURIComponent(m);a.target="_blank";a.rel="noopener";a.textContent=text;return a};
+  /* order system (Google Sheet) laga ho to order seedha store ho jata hai */
+  if(CONFIG.ordersUrl){
+    const btn=$("#of button[type=submit]");sending=true;btn.disabled=true;btn.textContent="Order bheja ja raha hai…";
+    try{
+      const r=await fetch(CONFIG.ordersUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"order",items:Object.keys(cart).map(id=>({id,qty:cart[id]})),customer:{name:f.fn,phone:f.fp,city:f.fc,address:f.fa,note:f.fx}})});
+      const j=await r.json();
+      if(!j.ok)throw new Error(j.error||"fail");
+      cart={};save();
+      $("#cnt").textContent="0";
+      $("#dbody").innerHTML='<div class="empty" style="color:inherit"><div style="font-size:48px">✅</div><h2 style="font-size:24px;margin:8px 0">Shukriya! Order mil gaya</h2><p>Order number: <b id="oid"></b><br>Kul raqam: <b id="otot"></b> (Cash on Delivery)</p><p class="sample">Hum jald aap ko call ya WhatsApp kar ke order confirm karenge.</p><div id="okBox" style="display:grid;gap:10px;margin-top:16px"></div></div>';
+      $("#oid").textContent=j.id;$("#otot").textContent=money(j.total);
+      $("#okBox").append(waBtn("WhatsApp par jaldi confirm karein (optional)","Assalam o Alaikum! Mera order number "+j.id+" hai. Barah-e-karam confirm kar dein."));
+      sending=false;return;
+    }catch(e){
+      sending=false;btn.disabled=false;btn.textContent="Order confirm karein";
+      const n=document.createElement("p");n.className="err";n.textContent="Order abhi system mein nahi ja saka. Neeche WhatsApp se bhej dein.";box.append(n);
+    }
+  }
+  const a=waBtn("WhatsApp par order bhejein ✓",msg);
   const c=document.createElement("button");c.className="ghost";c.type="button";c.textContent="Order ka message copy karein";
   c.addEventListener("click",()=>{navigator.clipboard.writeText(msg).then(()=>toast("Copy ho gaya"),()=>toast("Copy nahi hua"))});
   const n=document.createElement("p");n.className="sample";n.textContent="WhatsApp na khule to message copy kar ke +"+wa+" par bhej dein.";
